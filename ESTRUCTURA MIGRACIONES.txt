@@ -1,0 +1,127 @@
+Schema::create('roles', function (Blueprint $table) {
+	$table->id();
+
+	$table->string('name')->unique();
+	$table->string('description')->nullable();
+	
+	$table->timestamps();
+});
+
+Schema::create('users', function (Blueprint $table) {
+	$table->id();
+
+	$table->string('name');
+	$table->string('email')->unique();
+	$table->timestamp('email_verified_at')->nullable();
+	$table->string('password');
+	
+	$table->foreignId('role_id')->default(3);
+
+	$table->rememberToken();
+	$table->timestamps();
+});
+
+Schema::create('customer_types', function (Blueprint $table) {
+	$table->id();
+
+	$table->string('name')->unique();
+	$table->string('description')->nullable();
+
+	$table->timestamps();
+});
+
+Schema::create('customers', function (Blueprint $table) {
+	$table->id();
+	
+	$table->string('dni_ruc')->unique();
+	$table->string('name');
+	$table->string('email')->unique()->nullable();
+	$table->string('phone')->nullable();
+	$table->string('address');
+	$table->string('city');
+	$table->foreignId('customer_type_id')->nullable()->constrained()->onDelete('set null');
+
+	$table->timestamps();
+});
+
+Schema::create('categories', function (Blueprint $table) {
+	$table->id();
+	
+	$table->string('name')->unique();
+	$table->text('description')->nullable();
+	
+	$table->timestamps();
+});
+
+Schema::create('suppliers', function (Blueprint $table) {
+	$table->id();
+
+	$table->string('name');
+	$table->string('contact')->nullable();
+	$table->string('phone')->nullable();
+	$table->string('address')->nullable();
+
+	$table->timestamps();
+});
+
+Schema::create('products', function (Blueprint $table) {
+	$table->id();
+
+	$table->string('code')->unique();
+	$table->string('name');
+	$table->text('description')->nullable();
+	$table->string('brand');
+	$table->string('model');
+	$table->foreignId('supplier_id')->constrained()->onDelete('cascade');
+	$table->foreignId('category_id')->constrained()->onDelete('cascade');
+	$table->integer('stock')->default(0);
+	$table->integer('min_stock');
+	$table->decimal('price', 10, 2);
+	$table->string('image_path')->nullable();
+
+	$table->timestamps();
+});
+
+Schema::create('payment_methods', function (Blueprint $table) {
+	$table->id();
+
+	$table->string('name')->unique();
+	$table->string('description')->nullable();
+
+	$table->timestamps();
+});
+
+Schema::create('sales', function (Blueprint $table) {
+	$table->id();
+	
+	$table->foreignId('customer_id')->constrained()->onDelete('cascade');
+	$table->foreignId('user_id')->constrained()->onDelete('cascade');
+	$table->decimal('total', 10, 2);
+	$table->dateTime('sale_date');
+	$table->foreignId('payment_method_id')->constrained()->onDelete('cascade');
+	
+	$table->timestamps();
+});
+
+Schema::create('sale_details', function (Blueprint $table) {
+	$table->id();
+	
+	$table->foreignId('sale_id')->constrained()->onDelete('cascade');
+	$table->foreignId('product_id')->constrained()->onDelete('cascade');
+	$table->integer('quantity');
+	$table->decimal('price', 10, 2);
+	$table->decimal('total', 10, 2);
+	
+	$table->timestamps();
+});
+
+Schema::create('payments', function (Blueprint $table) {
+	$table->id();
+	
+	$table->foreignId('sale_id')->constrained()->onDelete('cascade');
+	$table->decimal('amount', 10, 2);
+	$table->dateTime('payment_date');
+	$table->foreignId('payment_method_id')->nullable()->constrained()->onDelete('set null');
+	
+	$table->timestamps();
+});
