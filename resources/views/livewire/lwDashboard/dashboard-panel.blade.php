@@ -1,270 +1,128 @@
-<div class="bg-white overflow-y-scroll shadow-sm sm:rounded-lg m-2 h-[calc(100vh-4rem)]"> <!-- CONTENEDOR MAESTRO -->
-	<!-- Vista Superior -->
-	<div class="flex items-center w-full my-3">
-		<h2 class="text-xl font-semibold my-2 ml-6 text-gray-900 ms- w-full">Panel de control: Dashboard</h2>
-	</div>
+<div class="min-h-[calc(100vh-4rem)] bg-slate-50 p-4 sm:p-6 lg:p-8">
+    <div class="mx-auto max-w-7xl space-y-6">
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.22em] text-blue-600">LEO AutoParts</p>
+                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Resumen del negocio</h1>
+                <p class="mt-1 text-sm text-slate-500">Indicadores y actividad reciente de tu empresa.</p>
+            </div>
+            <a href="{{ route('invoicing') }}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Registrar nueva venta</a>
+        </header>
 
-	<div class="border-t border-gray-300"></div> <!-- Separador -->
+        <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div class="absolute inset-x-0 top-0 h-1 bg-blue-500"></div>
+                <p class="text-sm font-semibold text-slate-500">Ventas realizadas</p>
+                <p class="mt-3 text-4xl font-bold tracking-tight text-slate-900">{{ number_format($totalSales) }}</p>
+                <p class="mt-2 text-xs font-semibold text-blue-600">Acumulado histórico</p>
+            </article>
+            <a href="{{ route('customers') }}" class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div class="absolute inset-x-0 top-0 h-1 bg-emerald-500"></div>
+                <p class="text-sm font-semibold text-slate-500">Clientes registrados</p>
+                <p class="mt-3 text-4xl font-bold tracking-tight text-slate-900">{{ number_format($totalCustomers) }}</p>
+                <p class="mt-2 text-xs font-semibold text-emerald-600">Ver clientes →</p>
+            </a>
+            <a href="{{ route('inventory') }}" class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:col-span-2 xl:col-span-1">
+                <div class="absolute inset-x-0 top-0 h-1 bg-amber-500"></div>
+                <p class="text-sm font-semibold text-slate-500">Productos disponibles</p>
+                <p class="mt-3 text-4xl font-bold tracking-tight text-slate-900">{{ number_format($totalProducts) }}</p>
+                <p class="mt-2 text-xs font-semibold text-amber-600">Revisar inventario →</p>
+            </a>
+        </section>
 
-	<div class="p-6 h-[calc(100vh-133px)] flex flex-col">
-		<div class="flex w-full justify-end mb-4 px-2">
-			<x-primary-button wire:click="$dispatch('alerta')">SWEET ALERT</x-primary-button>
-		</div>
+        <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+                <h2 class="font-bold text-slate-900">Ventas por mes</h2>
+                <p class="text-sm text-slate-500">Ingresos registrados durante el año</p>
+                @php
+                    $monthNames = [1 => 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+                    $maxMonthly = max($ventasPorMes ?: [1]);
+                @endphp
+                <div class="mt-6 flex h-[250px] items-end gap-2 rounded-xl bg-slate-50 px-4 pb-10 pt-5" aria-label="Gráfico de ventas por mes">
+                    @foreach(range(1, 12) as $month)
+                        @php
+                            $value = (float) ($ventasPorMes[$month] ?? 0);
+                            $height = $value > 0 ? max(8, ($value / $maxMonthly) * 100) : 2;
+                        @endphp
+                        <div class="group relative flex h-full min-w-0 flex-1 items-end">
+                            <div class="w-full rounded-t-md bg-blue-600 transition hover:bg-blue-700" style="height: {{ $height }}%" title="{{ $monthNames[$month] }}: ${{ number_format($value, 2) }}">
+                                <span class="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow group-hover:block">${{ number_format($value, 2) }}</span>
+                            </div>
+                            <span class="absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-slate-500 sm:text-xs">{{ $monthNames[$month] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </article>
+            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h2 class="font-bold text-slate-900">Métodos de pago</h2>
+                <p class="text-sm text-slate-500">Distribución de las transacciones</p>
+                <div class="flex min-h-[310px] flex-col items-center justify-center" aria-label="Gráfico de métodos de pago">
+                    <div class="relative h-48 w-48 rounded-full shadow-inner" style="background: conic-gradient(#10b981 0% {{ $paymentComparison['cash'] }}%, #2563eb {{ $paymentComparison['cash'] }}% 100%);">
+                        <div class="absolute inset-7 flex flex-col items-center justify-center rounded-full bg-white shadow-sm">
+                            <span class="text-2xl font-bold text-slate-900">100%</span>
+                            <span class="text-xs text-slate-500">de las ventas</span>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex flex-wrap justify-center gap-4 text-sm">
+                        <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-emerald-500"></span><span class="text-slate-600">Efectivo</span><strong>{{ $paymentComparison['cash'] }}%</strong></div>
+                        <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-blue-600"></span><span class="text-slate-600">PayPal</span><strong>{{ $paymentComparison['paypal'] }}%</strong></div>
+                    </div>
+                </div>
+            </article>
+        </section>
 
-		<!-- Tarjetas de Métricas -->
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-			<div class="bg-blue-200 p-6 rounded-lg shadow border-2 border-blue-600 relative overflow-hidden">
-				<h3 class="text-lg font-semibold text-gray-700">Total Ventas</h3>
-				<p class="text-3xl font-bold text-blue-600">{{ $totalSales }}</p>
+        <section class="grid grid-cols-1 gap-6 xl:grid-cols-5">
+            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+                <h2 class="font-bold text-slate-900">Vendedores destacados</h2>
+                <p class="text-sm text-slate-500">Clasificación por ventas completadas</p>
+                @php($maxSellerSales = max($topSellers->pluck('sales_count')->toArray() ?: [1]))
+                <div class="mt-7 space-y-6" aria-label="Gráfico de vendedores destacados">
+                    @forelse($topSellers as $index => $seller)
+                        <div>
+                            <div class="mb-2 flex items-center justify-between gap-3 text-sm">
+                                <span class="truncate font-semibold text-slate-700">{{ $index + 1 }}. {{ $seller->user?->name ?? 'Usuario' }}</span>
+                                <span class="whitespace-nowrap font-bold text-slate-900">{{ $seller->sales_count }} ventas</span>
+                            </div>
+                            <div class="h-3 overflow-hidden rounded-full bg-slate-100">
+                                <div class="h-full rounded-full bg-slate-800 transition-all duration-500" style="width: {{ max(5, ($seller->sales_count / $maxSellerSales) * 100) }}%"></div>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="py-16 text-center text-sm text-slate-500">No hay ventas registradas.</p>
+                    @endforelse
+                </div>
+            </article>
+            <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
+                <div class="border-b border-slate-100 px-5 py-4">
+                    <h2 class="font-bold text-slate-900">Ventas recientes</h2>
+                    <p class="text-sm text-slate-500">Últimos movimientos registrados</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                            <tr><th class="px-5 py-3">Venta</th><th class="px-5 py-3">Cliente</th><th class="px-5 py-3">Fecha</th><th class="px-5 py-3 text-right">Total</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($recentSales as $sale)
+                                <tr class="text-slate-700 transition hover:bg-slate-50">
+                                    <td class="px-5 py-4 font-bold text-slate-900">#{{ $sale->id }}</td>
+                                    <td class="px-5 py-4">{{ $sale->customer?->name ?? 'Sin cliente' }}</td>
+                                    <td class="whitespace-nowrap px-5 py-4 text-slate-500">{{ \Carbon\Carbon::parse($sale->sale_date)->format('d/m/Y') }}</td>
+                                    <td class="px-5 py-4 text-right font-bold text-blue-600">${{ number_format($sale->total, 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="px-5 py-10 text-center text-slate-500">Aún no hay ventas registradas.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
 
-				<svg class="absolute top-1 -right-3 text-white opacity-75 w-32 h-32" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M6 2L3 6v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V6l-3-4H6zM3.8 6h16.4M16 10a4 4 0 1 1-8 0"/>
-				</svg>
-			</div>
-			<div class="bg-green-300 border-2 border-green-600 p-6 rounded-lg shadow relative overflow-hidden">
-				<h3 class="text-lg font-semibold text-gray-700">Clientes Registrados</h3>
-				<p class="text-3xl font-bold text-green-600">{{ $totalCustomers }}</p>
-
-				<svg class="absolute top-1 -right-3 text-white opacity-75 w-32 h-32" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-				</svg>
-			</div>
-	
-			<div class="bg-red-300 border-2 border-red-600 p-6 rounded-lg shadow relative overflow-hidden">
-				<h3 class="text-lg font-semibold text-gray-700">Productos Disponibles</h3>
-				<p class="text-3xl font-bold text-red-600">{{ $totalProducts }}</p>
-
-				<svg class="absolute top-1 -right-3 text-white opacity-75 w-32 h-32" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 12H3M12 3v18"/>
-				</svg>
-			</div>
-		</div>
-
-		<div class="border-t border-gray-300 my-4"></div> <!-- Separador -->
-
-		<div class="flex flex-wrap justify-around p-4">
-			<div class="flex flex-wrap justify-around gap-6 p-4">
-				<!-- Gráfico de Barras Verticales -->
-				<div class="flex flex-col items-center bg-white p-4 rounded-lg shadow w-auto border border-gray-800">
-					<h3 class="text-lg font-semibold text-gray-700 mb-2">Ventas por Mes</h3>
-					<div class="flex items-end space-x-2 h-40 p-4 bg-gray-100 rounded-lg">
-						@foreach ($ventasPorMes as $mes => $total)
-							<div class="w-10 bg-blue-900 rounded-t" style="height: {{ min(100, ($total / max($ventasPorMes)) * 100) }}%;"></div>
-						@endforeach
-					</div>
-				</div>
-			
-				<!-- Gráfico de Barras Horizontales -->
-				<div class="bg-white p-4 rounded-lg shadow w-auto border border-gray-800">
-					<h3 class="text-lg font-semibold text-gray-700 mb-2">Top 3 Vendedores</h3>
-					<div class="space-y-3">
-						@foreach ($topSellers as $seller)
-							<div>
-								<p class="text-sm font-semibold">{{ $seller->user->name }}</p>
-								<div class="w-full bg-gray-200 rounded h-4">
-									<div class="bg-blue-900 h-4 rounded" style="width: {{ min(100, ($seller->sales_count / max($topSellers->pluck('sales_count')->toArray())) * 100) }}%;"></div>
-								</div>
-							</div>
-						@endforeach
-					</div>
-				</div>
-			
-				<!-- Círculo de Progreso -->
-				<div class="flex flex-col items-center bg-white p-4 rounded-lg shadow w-auto border border-gray-800">
-					<h3 class="text-lg font-semibold text-gray-700 mb-2">Métodos de Pago</h3>
-					<div class="relative w-24 h-24">
-						<div class="w-24 h-24 rounded-full bg-gray-200 relative">
-							<div class="absolute inset-0 w-full h-full rounded-full"
-								style="background: conic-gradient(#3b82f6 0% {{ $paymentComparison['paypal'] }}%, #10b981 {{ $paymentComparison['paypal'] }}% 100%);">
-							</div>
-						</div>
-					</div>
-					<div class="flex gap-2 my-2">
-						<div class="flex-col justify-center">
-							<div class="px-1 rounded-3xl w-full text-center text-black font-black">
-								{{ $paymentComparison['cash'] }}%
-							</div>
-							<div class="px-1 rounded-3xl border w-full text-center bg-green-200 border-green-600 text-green-600 font-black">
-								Efectivo
-							</div>
-						</div>
-						<div class="flex-col justify-center">
-							<div class="px-1 rounded-3xl w-full text-center text-black font-black">
-								{{ $paymentComparison['paypal'] }}%
-							</div>
-							<div class="px-1 rounded-3xl border w-full text-center bg-blue-200 border-blue-600 text-blue-600 font-black">
-								PayPal
-							</div>
-						</div>
-					</div>
-
-				</div>
-				
-			</div>
-
-			<!-- Últimas Ventas -->
-		<div class="bg-white p-6 rounded-lg shadow border border-gray-900">
-			<h3 class="text-lg font-semibold text-gray-700 mb-4">Últimas Ventas</h3>
-			<table class="w-full text-left border-collapse">
-				<thead>
-					<tr class="bg-gray-200">
-						<th class="p-2">#</th>
-						<th class="p-2">Cliente</th>
-						<th class="p-2">Total</th>
-						<th class="p-2">Fecha</th>
-					</tr>
-				</thead>
-				<tbody>
-					@foreach($recentSales as $sale)
-						<tr class="border-b">
-							<td class="p-2 text-center">{{ $sale->id }}</td>
-							<td class="p-2">{{ $sale->customer->name }}</td>
-							<td class="p-2 font-semibold text-blue-500 text-right">${{ number_format($sale->total, 2) }}</td>
-							<td class="p-2">{{ $sale->sale_date }}</td>
-						</tr>
-					@endforeach
-				</tbody>
-			</table>
-		</div>
-			
-		</div>
-
-		
-
-		<div class="border-t border-gray-300 my-4"></div> <!-- Separador -->
-	
-		<!-- Accesos Rápidos -->
-		<div class="mt-0 flex space-x-4 w-full justify-center pb-4">
-			<a href="{{ route('invoicing') }}" class="px-6 font-black py-2 bg-blue-600 text-white rounded-3xl shadow">Nueva Venta</a>
-			<a href="{{ route('customers') }}" class="px-6 font-black py-2 bg-green-500 text-white rounded-3xl shadow">Ver Clientes</a>
-			<a href="{{ route('inventory') }}" class="px-6 font-black py-2 bg-red-600 text-white rounded-3xl shadow">Ver Productos</a>
-		</div>
-
-		{{-- <!-- Tarjetas de Métricas -->
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-			<div class="bg-blue-200 p-6 rounded-lg shadow border-2 border-blue-600 relative overflow-hidden">
-				<h3 class="text-lg font-semibold text-gray-700">Total Ventas</h3>
-				<p class="text-3xl font-bold text-blue-600">{{ $totalSales }}</p>
-
-				<svg class="absolute top-1 -right-3 text-white opacity-75 w-32 h-32" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M6 2L3 6v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V6l-3-4H6zM3.8 6h16.4M16 10a4 4 0 1 1-8 0"/>
-				</svg>
-			</div>
-			<div class="bg-green-300 border-2 border-green-600 p-6 rounded-lg shadow relative overflow-hidden">
-				<h3 class="text-lg font-semibold text-gray-700">Clientes Registrados</h3>
-				<p class="text-3xl font-bold text-green-600">{{ $totalCustomers }}</p>
-
-				<svg class="absolute top-1 -right-3 text-white opacity-75 w-32 h-32" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-				</svg>
-			</div>
-	
-			<div class="bg-red-300 border-2 border-red-600 p-6 rounded-lg shadow relative overflow-hidden">
-				<h3 class="text-lg font-semibold text-gray-700">Productos Disponibles</h3>
-				<p class="text-3xl font-bold text-red-600">{{ $totalProducts }}</p>
-
-				<svg class="absolute top-1 -right-3 text-white opacity-75 w-32 h-32" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-					<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M21 12H3M12 3v18"/>
-				</svg>
-			</div>
-		</div>
-
-		<div class="border-t border-gray-300 my-4"></div> <!-- Separador -->
-
-		<div class="flex flex-wrap justify-around gap-6 p-4">
-			<div class="flex flex-wrap justify-around gap-6 p-4">
-				<!-- Gráfico de Barras Verticales -->
-				<div class="flex flex-col items-center bg-white p-4 rounded-lg shadow w-auto">
-					<h3 class="text-lg font-semibold text-gray-700 mb-2">Ventas por Mes</h3>
-					<div class="flex items-end space-x-2 h-40 p-4 bg-gray-100 rounded-lg">
-						@foreach ($ventasPorMes as $mes => $total)
-							<div class="w-10 bg-blue-500 rounded-t" style="height: {{ min(100, ($total / max($ventasPorMes)) * 100) }}%;"></div>
-						@endforeach
-					</div>
-				</div>
-			
-				<!-- Gráfico de Barras Horizontales -->
-				<div class="bg-white p-4 rounded-lg shadow w-auto">
-					<h3 class="text-lg font-semibold text-gray-700 mb-2">Comparación Mensual</h3>
-					<div class="space-y-3">
-						@foreach ($ventasPorMes as $mes => $total)
-							<div>
-								<p class="text-sm font-semibold">Mes {{ $mes }}</p>
-								<div class="w-full bg-gray-200 rounded h-4">
-									<div class="bg-green-500 h-4 rounded" style="width: {{ min(100, ($total / max($ventasPorMes)) * 100) }}%;"></div>
-								</div>
-							</div>
-						@endforeach
-					</div>
-				</div>
-			
-				<!-- Círculo de Progreso -->
-				<div class="flex flex-col items-center bg-white p-4 rounded-lg shadow w-auto">
-					<h3 class="text-lg font-semibold text-gray-700 mb-2">Progreso de Ventas</h3>
-					<div class="relative w-24 h-24">
-						<div class="absolute inset-0 flex items-center justify-center text-xl font-bold text-blue-500">
-							{{ round($progresoVentas) }}%
-						</div>
-						<div class="w-24 h-24 rounded-full bg-gray-200 relative">
-							<div class="absolute inset-0 w-full h-full rounded-full"
-								style="background: conic-gradient(#3b82f6 0% {{ $progresoVentas }}%, #e5e7eb {{ $progresoVentas }}% 100%);">
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			
-		</div>
-
-		<!-- Últimas Ventas -->
-		<div class="bg-white p-6 rounded-lg shadow border border-gray-900">
-			<h3 class="text-lg font-semibold text-gray-700 mb-4">Últimas Ventas</h3>
-			<table class="w-full text-left border-collapse">
-				<thead>
-					<tr class="bg-gray-200">
-						<th class="p-2">#</th>
-						<th class="p-2">Cliente</th>
-						<th class="p-2">Total</th>
-						<th class="p-2">Fecha</th>
-					</tr>
-				</thead>
-				<tbody>
-					@foreach($recentSales as $sale)
-						<tr class="border-b">
-							<td class="p-2">{{ $sale->id }}</td>
-							<td class="p-2">{{ $sale->customer->name }}</td>
-							<td class="p-2 font-semibold text-blue-500">${{ number_format($sale->total, 2) }}</td>
-							<td class="p-2">{{ $sale->sale_date }}</td>
-						</tr>
-					@endforeach
-				</tbody>
-			</table>
-		</div>
-
-		<div class="border-t border-gray-300 my-4"></div> <!-- Separador -->
-	
-		<!-- Accesos Rápidos -->
-		<div class="mt-0 flex space-x-4 w-full justify-center">
-			<a href="{{ route('invoicing') }}" class="px-6 font-black py-2 bg-blue-600 text-white rounded-3xl shadow">Nueva Venta</a>
-			<a href="{{ route('customers') }}" class="px-6 font-black py-2 bg-green-500 text-white rounded-3xl shadow">Ver Clientes</a>
-			<a href="{{ route('inventory') }}" class="px-6 font-black py-2 bg-red-600 text-white rounded-3xl shadow">Ver Productos</a>
-		</div> --}}
-
-	</div>
-
-	@script
-	<script>
-		$wire.on('alerta', () => {
-			Swal.fire({
-				title: "¡Bienvenido a LEO AutoParts!",
-				text: " -- Desarrollado por JC Dávila -- ",
-				imageUrl: "{{ asset('graphicResources/LEO AutoParts LOGO BLACK.png') }}",
-				imageWidth: 400,
-				imageHeight: 200,
-				confirmButtonText: "¡Allá vamos!",
-				confirmButtonColor: "#111827"
-			});
-		});
-	</script>
-	@endscript
+        <nav class="flex flex-wrap justify-center gap-3" aria-label="Accesos rápidos">
+            <a href="{{ route('invoicing') }}" class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">Nueva venta</a>
+            <a href="{{ route('customers') }}" class="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">Ver clientes</a>
+            <a href="{{ route('inventory') }}" class="rounded-xl bg-slate-800 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-900">Ver productos</a>
+        </nav>
+    </div>
 </div>
