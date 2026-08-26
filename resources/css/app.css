@@ -1,3 +1,187 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    [x-cloak] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body { min-width: 320px; }
+    html.dark body { @apply bg-slate-950 text-slate-200; }
+    button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+}
+
+@layer components {
+    aside nav svg { @apply h-5 w-5; }
+
+    .leo-product-media {
+        background-color: rgb(226 232 240);
+        background-image:
+            linear-gradient(to bottom, rgb(255 255 255 / .05), rgb(255 255 255 / .15), rgb(255 255 255 / .55)),
+            var(--leo-product-backdrop);
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        contain: paint;
+    }
+    .dark .leo-product-media {
+        background-color: rgb(15 23 42);
+        background-image:
+            linear-gradient(to bottom, rgb(2 6 23 / .05), rgb(15 23 42 / .15), rgb(15 23 42 / .60)),
+            var(--leo-product-backdrop);
+    }
+
+    .dark .leo-page { @apply bg-slate-950; }
+    .dark .leo-title { @apply text-slate-50; }
+    .dark .leo-subtitle { @apply text-slate-400; }
+    .dark .leo-card,
+    .dark .leo-table-wrap { @apply border-slate-800 bg-slate-900 shadow-black/20; }
+    .dark .leo-card-header { @apply border-slate-800; }
+    .dark .leo-table thead { @apply bg-slate-950 text-slate-400; }
+    .dark .leo-table tbody { @apply divide-slate-800; }
+    .dark .leo-table td { @apply text-slate-300; }
+    .dark .leo-table tbody tr:hover { @apply bg-slate-800/70; }
+    .dark .leo-field { @apply border-slate-700 bg-slate-950 text-slate-100 placeholder-slate-500; }
+    .dark .leo-button-dark { @apply bg-slate-100 text-slate-950 hover:bg-white; }
+
+    .dark main [class~="bg-white"] { background-color: rgb(15 23 42); }
+    .dark main [class~="bg-slate-50"],
+    .dark main [class~="bg-slate-100"] { background-color: rgb(30 41 59); }
+    .dark main [class~="border-slate-100"],
+    .dark main [class~="border-slate-200"],
+    .dark main [class~="border-gray-300"] { border-color: rgb(30 41 59); }
+    .dark main [class~="text-slate-950"],
+    .dark main [class~="text-slate-900"],
+    .dark main [class~="text-gray-900"] { color: rgb(248 250 252); }
+    .dark main [class~="text-slate-800"],
+    .dark main [class~="text-slate-700"],
+    .dark main [class~="text-gray-700"] { color: rgb(203 213 225); }
+    .dark main [class~="text-slate-600"],
+    .dark main [class~="text-slate-500"],
+    .dark main [class~="text-gray-600"] { color: rgb(148 163 184); }
+    .dark main input:not([type='radio']):not([type='checkbox']):not([type='file']),
+    .dark main select,
+    .dark main textarea { @apply border-slate-700 bg-slate-950 text-slate-100; }
+    .dark [role='dialog'] { @apply text-slate-200; }
+
+    .dark .leo-button:not(.leo-button-primary):not(.leo-button-dark):not(.leo-button-success) {
+        @apply bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white focus:ring-slate-600 focus:ring-offset-slate-900;
+    }
+    .dark .leo-button-primary { @apply bg-blue-500 hover:bg-blue-400 focus:ring-blue-400 focus:ring-offset-slate-900; }
+    .dark .leo-button-success { @apply bg-emerald-500 hover:bg-emerald-400 focus:ring-emerald-400 focus:ring-offset-slate-900; }
+
+    .dark main [class~="bg-blue-50"],
+    .dark main [class~="bg-blue-50/50"],
+    .dark main [class~="bg-blue-100"] { background-color: rgb(30 58 138 / .38); }
+    .dark main [class~="text-blue-600"],
+    .dark main [class~="text-blue-700"] { color: rgb(147 197 253); }
+    .dark main [class~="border-blue-100"],
+    .dark main [class~="border-blue-200"] { border-color: rgb(37 99 235 / .55); }
+
+    .dark main [class~="bg-red-50"],
+    .dark main [class~="bg-red-100"],
+    .dark main [class~="bg-red-200"] { background-color: rgb(127 29 29 / .36); }
+    .dark main [class~="text-red-600"],
+    .dark main [class~="text-red-700"] { color: rgb(252 165 165); }
+    .dark main [class~="border-red-100"],
+    .dark main [class~="border-red-200"] { border-color: rgb(220 38 38 / .55); }
+
+    .dark main [class~="bg-amber-50"],
+    .dark main [class~="bg-amber-100"],
+    .dark main [class~="bg-yellow-200"] { background-color: rgb(120 53 15 / .4); }
+    .dark main [class~="text-amber-600"],
+    .dark main [class~="text-amber-700"],
+    .dark main [class~="text-yellow-800"] { color: rgb(253 230 138); }
+    .dark main [class~="border-amber-200"] { border-color: rgb(217 119 6 / .6); }
+
+    .dark main [class~="bg-emerald-50"],
+    .dark main [class~="bg-emerald-100"],
+    .dark main [class~="bg-green-200"] { background-color: rgb(6 78 59 / .45); }
+    .dark main [class~="text-emerald-600"],
+    .dark main [class~="text-emerald-700"],
+    .dark main [class~="text-green-600"],
+    .dark main [class~="text-green-700"] { color: rgb(110 231 183); }
+
+    .dark main [class~="bg-gray-50"],
+    .dark main [class~="bg-gray-100"],
+    .dark main [class~="bg-gray-200"],
+    .dark main [class~="bg-slate-200"] { background-color: rgb(51 65 85); }
+    .dark main [class~="text-gray-800"],
+    .dark main [class~="text-gray-950"] { color: rgb(241 245 249); }
+    .dark main [class~="text-gray-500"] { color: rgb(148 163 184); }
+
+    .dark main button:disabled,
+    .dark main input:disabled,
+    .dark main select:disabled { @apply cursor-not-allowed opacity-50; }
+    .dark main input[type='file'] { @apply rounded-xl border-slate-700 bg-slate-950 text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-slate-200; }
+    .dark main input[type='checkbox'],
+    .dark main input[type='radio'] { @apply border-slate-600 bg-slate-900 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900; }
+
+    .dark .swal2-popup { background: rgb(15 23 42); color: rgb(226 232 240); }
+    .dark .swal2-title,
+    .dark .swal2-html-container { color: rgb(226 232 240); }
+    .dark .swal2-cancel { background-color: rgb(51 65 85) !important; }
+}
+
+@layer components {
+    .leo-page { @apply min-h-[calc(100vh-4rem)] bg-slate-100 p-3 sm:p-5 lg:p-7; }
+    .leo-container { @apply mx-auto max-w-[1600px] space-y-5; }
+    .leo-header { @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between; }
+    .leo-title { @apply text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl; }
+    .leo-subtitle { @apply mt-1 text-sm text-slate-500; }
+    .leo-card { @apply rounded-2xl border border-slate-200 bg-white shadow-sm; }
+    .leo-card-header { @apply flex flex-col gap-1 border-b border-slate-100 px-4 py-4 sm:px-5; }
+    .leo-table-wrap { @apply overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm; }
+    .leo-table { @apply min-w-full text-left text-sm; }
+    .leo-table thead { @apply bg-slate-950 text-xs uppercase tracking-wide text-slate-300; }
+    .leo-table th { @apply whitespace-nowrap px-4 py-3 font-semibold; }
+    .leo-table tbody { @apply divide-y divide-slate-100; }
+    .leo-table td { @apply px-4 py-3 text-slate-700; }
+    .leo-table tbody tr { @apply transition hover:bg-slate-50; }
+    .leo-button { @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50; }
+    .leo-button-primary { @apply leo-button bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:ring-blue-500; }
+    .leo-button-dark { @apply leo-button bg-slate-950 text-white hover:bg-slate-800 focus:ring-slate-500; }
+    .leo-button-success { @apply leo-button bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500; }
+    .leo-field { @apply mt-1 block min-h-10 w-full rounded-xl border-slate-300 bg-white text-sm shadow-sm transition focus:border-blue-500 focus:ring-blue-500; }
+}
+
+/* Puente visual para módulos heredados mientras conservan su lógica Livewire. */
+@layer components {
+    main > .bg-white.overflow-hidden {
+        @apply m-3 min-h-[calc(100vh-5.5rem)] h-auto rounded-2xl border border-slate-200 bg-slate-100 shadow-none sm:m-5 lg:m-7;
+    }
+    .dark main > [class~="bg-white"][class~="overflow-hidden"] { @apply border-slate-800 bg-slate-950; }
+    main > .bg-white.overflow-hidden > .flex.items-center.w-full {
+        @apply m-0 min-h-20 border-b border-slate-200 px-4 py-4 sm:px-6;
+    }
+    main > .bg-white.overflow-hidden > .flex.items-center.w-full h2 {
+        @apply m-0 text-xl font-bold tracking-tight text-slate-950 sm:text-2xl;
+    }
+    main > .bg-white.overflow-hidden > .border-t { @apply hidden; }
+    main table { @apply text-sm; }
+    main table thead th { @apply whitespace-nowrap border-slate-700 bg-slate-950 px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-300; }
+    main table tbody tr { @apply transition hover:bg-slate-50; }
+    main table tbody td { @apply border-slate-100 px-3 py-3 text-slate-700; }
+    main input:not([type='radio']):not([type='checkbox']):not([type='file']),
+    main select,
+    main textarea { @apply rounded-xl border-slate-300 shadow-sm transition focus:border-blue-500 focus:ring-blue-500; }
+    main button, main [role='button'] { @apply transition duration-150; }
+    main .shadow-md { @apply shadow-sm; }
+}
+
+@media (max-width: 1023px) {
+    main > .bg-white.overflow-hidden { overflow: visible; }
+    main [class*="h-[calc("] { height: auto !important; min-height: 0; }
+    main [class*="min-w-[calc("] { min-width: 0 !important; }
+    main .w-96 { width: 100% !important; }
+}
+
+@media (max-width: 767px) {
+    main > .bg-white.overflow-hidden > .flex.items-center.w-full { align-items: flex-start; gap: .75rem; }
+    main > .bg-white.overflow-hidden > .flex.items-center.w-full > h2 { width: auto; flex: 1; }
+    main > .bg-white.overflow-hidden .mx-6 { margin-left: .75rem; margin-right: .75rem; }
+    main > .bg-white.overflow-hidden .px-6 { padding-left: .75rem; padding-right: .75rem; }
+    main > .bg-white.overflow-hidden table { min-width: 720px; }
+    main > .bg-white.overflow-hidden [class*="grid-cols-5"] { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    main > .bg-white.overflow-hidden [class*="grid-cols-2"] { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+}

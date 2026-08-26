@@ -7,17 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class PaymentMethod extends Model
 {
-	use HasFactory;
+    use HasFactory;
 
-	protected $fillable = ['name', 'description'];
+    protected $fillable = ['name', 'description'];
 
-	public function sales()
-	{
-		return $this->hasMany(Sale::class);
-	}
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
 
-	public function payments()
-	{
-		return $this->hasMany(Payment::class);
-	}
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

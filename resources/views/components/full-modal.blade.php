@@ -6,15 +6,20 @@
 ])
 
 @php
-$maxWidth = [
+$maxWidthOptions = [
 	'sm' => 'sm:max-w-sm',
 	'md' => 'sm:max-w-md',
 	'lg' => 'sm:max-w-lg',
 	'xl' => 'sm:max-w-xl',
 	'2xl' => 'sm:max-w-2xl',
-][$maxWidth];
+	'3xl' => 'sm:max-w-3xl',
+	'4xl' => 'sm:max-w-4xl',
+];
 
-$fullScreenClass = $fullScreen ? 'inset-0 w-full h-full' : 'sm:w-full ' . $maxWidthClass;
+$maxWidthClass = $maxWidthOptions[$maxWidth] ?? $maxWidthOptions['2xl'];
+$fullScreenClass = $fullScreen
+	? 'h-[calc(100vh-1.5rem)] w-full sm:h-[calc(100vh-3rem)]'
+	: 'w-full ' . $maxWidthClass;
 
 @endphp
 
@@ -50,8 +55,8 @@ $fullScreenClass = $fullScreen ? 'inset-0 w-full h-full' : 'sm:w-full ' . $maxWi
 	x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
 	x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
 	x-show="show"
-	class="fixed inset-0 overflow-y-auto p-4 sm:px-0 z-50"
-	style="display: {{ $show ? 'block' : 'none' }}; margin: 20px;"
+	class="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-6"
+	style="display: {{ $show ? 'block' : 'none' }};"
 >
 	<div
 		x-show="show"
@@ -69,17 +74,15 @@ $fullScreenClass = $fullScreen ? 'inset-0 w-full h-full' : 'sm:w-full ' . $maxWi
 
 	<div
 		x-show="show"
-		class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all {{ $fullScreenClass }} sm:mx-auto"
+		class="relative mx-auto overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-950/10 transform transition-all dark:ring-white/10 {{ $fullScreenClass }}"
 		x-transition:enter="ease-out duration-300"
 		x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
 		x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
 		x-transition:leave="ease-in duration-200"
 		x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
 		x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-		style="overflow-y-auto; max-height: 100vh; margin: 0 auto;"
 	>
 		{{ $slot }}
 	</div>
 </div>
-
 

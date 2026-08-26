@@ -1,92 +1,58 @@
 <?php
 
 use App\Http\Middleware\RoleMiddleware;
-use App\Livewire\CatalogPanel;
-use App\Livewire\ConfigurationPanel;
-use App\Livewire\CustomersPanel;
-use App\Livewire\DashboardPanel;
-use App\Livewire\InventoryPanel;
-use App\Livewire\InvoicingPanel;
-use App\Livewire\ReportsPanel;
-use App\Livewire\SalesHistoryPanel;
-use App\Livewire\SuppliersPanel;
-use App\Livewire\UsersPanel;
+use App\Livewire\Administration\ConfigurationPage;
+use App\Livewire\Administration\UsersPage;
+use App\Livewire\Cash\CashPage;
+use App\Livewire\Customers\CustomersPage;
+use App\Livewire\Dashboard\DashboardPage;
+use App\Livewire\Inventory\CatalogPage;
+use App\Livewire\Inventory\InventoryPage;
+use App\Livewire\Inventory\KardexPage;
+use App\Livewire\Purchases\PurchasesPage;
+use App\Livewire\Reports\ReportsPage;
+use App\Livewire\Sales\InvoicingPage;
+use App\Livewire\Sales\SalesHistoryPage;
+use App\Livewire\Suppliers\SuppliersPage;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', 'dashboard');
-
-//Route::get('g', )->name('g')->lazy();
-
-//==============================SIDEBAR MENU ROUTES===============================
+Route::redirect('/', '/dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-	Route::get('dashboard', DashboardPanel::class)->name('dashboard')->lazy();
+    Route::get('dashboard', DashboardPage::class)->name('dashboard')->lazy();
 
-	// Solo 'Administrador' puede acceder a Usuarios y Configuración
-	Route::middleware([RoleMiddleware::class . ':Administrador'])->group(function () {
-		Route::get('users', UsersPanel::class)->name('users')->lazy();
-		Route::get('configuration', ConfigurationPanel::class)->name('configuration')->lazy();
-	});
+    Route::middleware(RoleMiddleware::class.':Administrador')->group(function () {
+        Route::get('users', UsersPage::class)->name('users')->lazy();
+        Route::get('configuration', ConfigurationPage::class)->name('configuration')->lazy();
+    });
 
-	// 'Administrador' y 'Contador' pueden acceder a Reportes e Inventario
-	Route::middleware([RoleMiddleware::class . ':Administrador,Contador'])->group(function () {
-		Route::get('reports', ReportsPanel::class)->name('reports')->lazy();
-		Route::get('inventory', InventoryPanel::class)->name('inventory')->lazy();
-		Route::get('salesHistory', SalesHistoryPanel::class)->name('salesHistory')->lazy();
-		Route::get('suppliers', SuppliersPanel::class)->name('suppliers')->lazy();
-	});
+    Route::middleware(RoleMiddleware::class.':Administrador,Contador')->group(function () {
+        Route::get('reports', ReportsPage::class)->name('reports')->lazy();
+        Route::get('inventory', InventoryPage::class)->name('inventory')->lazy();
+        Route::get('purchases', PurchasesPage::class)->name('purchases')->lazy();
+        Route::get('sales-history', SalesHistoryPage::class)->name('salesHistory')->lazy();
+        Route::get('suppliers', SuppliersPage::class)->name('suppliers')->lazy();
+        Route::get('kardex', KardexPage::class)->name('kardex')->lazy();
+        Route::get('cash', CashPage::class)->name('cash')->lazy();
+    });
 
-	// Acceso para todos los roles autenticados
-	Route::get('catalog', CatalogPanel::class)->name('catalog')->lazy();
-	Route::get('customers', CustomersPanel::class)->name('customers')->lazy();
-	Route::get('invoicing', InvoicingPanel::class)->name('invoicing')->lazy();
-	
+    Route::get('catalog', CatalogPage::class)->name('catalog')->lazy();
+    Route::get('customers', CustomersPage::class)->name('customers')->lazy();
+    Route::get('invoicing', InvoicingPage::class)->name('invoicing')->lazy();
 });
 
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('dashboard', DashboardPanel::class)->name('dashboard')->lazy();
-// });
+Route::post('logout', function (Request $request) {
+    Auth::guard('web')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
 
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('catalog', CatalogPanel::class)->name('catalog')->lazy();
-// });
-
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('customers', CustomersPanel::class)->name('customers')->lazy();
-// });
-
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('invoicing', InvoicingPanel::class)->name('invoicing')->lazy();
-// });
-
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('salesHistory', SalesHistoryPanel::class)->name('salesHistory')->lazy();
-// });
-
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('inventory', InventoryPanel::class)->name('inventory')->lazy();
-// });
-
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('suppliers', SuppliersPanel::class)->name('suppliers')->lazy();
-// });
-
-// Route::middleware(['auth', 'verified'])->group(function() {
-// 	Route::get('reports', ReportsPanel::class)->name('reports')->lazy();
-// });
-
-// Route::middleware([RoleMiddleware::class . ':Administrador'])->group(function() {
-// 	Route::get('users', UsersPanel::class)->name('users')->lazy();
-// });
-
-// Route::middleware([RoleMiddleware::class . ':Administrador'])->group(function() {
-// 	Route::get('configuration', ConfigurationPanel::class)->name('configuration')->lazy();
-// });
-
-//=============================================================
+    return redirect('/');
+})->middleware('auth')->name('logout');
 
 Route::view('profile', 'profile')
-	->middleware(['auth'])
-	->name('profile');
+    ->middleware('auth')
+    ->name('profile');
 
 require __DIR__.'/auth.php';

@@ -1,24 +1,18 @@
 <x-app-layout>
-	<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg m-2 h-[calc(100vh-64px)]"> <!-- CONTENEDOR MAESTRO -->
-		<div class="grid grid-cols-2">
-			<div class="flex p-6 justify-center">
-				<div class="w-full">
+    <div class="leo-page"><div class="leo-container">
+        <header><h1 class="leo-title">Mi perfil</h1><p class="leo-subtitle">Administre sus datos personales y credenciales.</p></header>
+		<div class="grid gap-5 xl:grid-cols-2">
+			<section class="leo-card p-5 sm:p-7">
 					<livewire:profile.update-profile-information-form />
-				</div>
-			</div>
-
-			<div class="flex p-6 justify-center">
-				<div class="w-full">
+			</section>
+			<section class="leo-card p-5 sm:p-7">
 					<livewire:profile.update-password-form />
-				</div>
-			</div>
-	
+			</section>
 		</div>
-		
-		{{-- <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
+		<section class="leo-card border-red-200 p-5 sm:p-7">
 			<div class="max-w-xl">
 				<livewire:profile.delete-user-form />
 			</div>
-		</div> --}}
-	</div>
+		</section>
+    </div></div>
 </x-app-layout>

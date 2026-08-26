@@ -1,11 +1,14 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "jcarlosdc7/leo-autoparts",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Automotive parts inventory, purchasing, cash and invoicing system.",
     "keywords": [
         "laravel",
-        "framework"
+        "livewire",
+        "inventory",
+        "invoicing",
+        "automotive"
     ],
     "license": "MIT",
     "require": {

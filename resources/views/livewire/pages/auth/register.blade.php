@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,6 @@ new #[Layout('layouts.guest')] class extends Component
 	public string $email = '';
 	public string $password = '';
 	public string $password_confirmation = '';
-	public $role_id = 3;
 
 	/**
 	 * Handle an incoming registration request.
@@ -25,15 +25,12 @@ new #[Layout('layouts.guest')] class extends Component
 			'name' => ['required', 'string', 'max:255'],
 			'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
 			'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
-			'role_id' => ['required'],
 		]);
 
 		$validated['password'] = Hash::make($validated['password']);
+        $validated['role_id'] = Role::where('name', 'Vendedor')->value('id');
 
 		event(new Registered($user = User::create($validated)));
-
-		$user->role_id = 3;
-		$user->save();
 
 		Auth::login($user);
 

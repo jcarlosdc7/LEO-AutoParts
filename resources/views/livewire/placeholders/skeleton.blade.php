@@ -1,7 +1,7 @@
 <div class="w-full h-[calc(100vh-48px)] overscroll-none items-center content-center justify-center"> 
 	<div class="relative flex justify-center items-center">
 		<div class="loader"></div>
-		<img class="spinner-image" src="{{ asset('graphicResources/LEO AutoParts ICO.png') }}" />
+		<img class="spinner-image" src="{{ asset('images/brand/favicon.png') }}" />
 	</div>
 	
 	
