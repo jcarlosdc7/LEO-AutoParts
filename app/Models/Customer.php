@@ -11,8 +11,10 @@ class Customer extends Model
 
 	protected $fillable = [
 		'dni_ruc', 'name', 'legal_name', 'email', 
-		'phone', 'address', 'city', 'customer_type_id', 'status'
+		'phone', 'address', 'city', 'customer_type_id', 'is_active'
 	];
+
+	protected $casts = ['is_active' => 'boolean'];
 
 	public function customerType()
 	{

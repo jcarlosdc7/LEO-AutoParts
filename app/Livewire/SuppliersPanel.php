@@ -44,12 +44,12 @@ class SuppliersPanel extends Component
 
 	public function render()
 	{
-		$suppliers = Supplier::paginate(10, pageName: 'pageSupplier');
+		$suppliers = Supplier::where('is_active', true)->paginate(10, pageName: 'pageSupplier');
 		
 		// EN CASO DE QUE LA ULTIMA PAGINA SE QUEDE SIN REGISTROS PARA RENDERIZAR
 		if($suppliers->count() === 0) {
 			$this->previousPage(pageName: 'pageSupplier');
-			$suppliers = Supplier::paginate(10, pageName: 'pageSupplier');
+			$suppliers = Supplier::where('is_active', true)->paginate(10, pageName: 'pageSupplier');
 		}
 
 		return view('livewire.lwSuppliers.suppliers-panel', compact('suppliers'));
@@ -82,7 +82,7 @@ class SuppliersPanel extends Component
 	public function destroy($id)
 	{
 		
-		Supplier::destroy($id);
+		Supplier::findOrFail($id)->update(['is_active' => false]);
 		//$this->suppliers = Supplier::all();
 	}
 

@@ -38,6 +38,13 @@ class LoginForm extends Form
             ]);
         }
 
+        if (! Auth::user()->is_active) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages(['form.email' => 'Cuenta inactiva. Contacte al administrador.']);
+        }
+
+        Auth::user()->forceFill(['last_login_at' => now()])->save();
         RateLimiter::clear($this->throttleKey());
     }
 

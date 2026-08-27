@@ -5,8 +5,11 @@ namespace App\Livewire;
 use App\Models\CustomerType;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AuditService;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 
@@ -43,6 +46,7 @@ class ConfigurationPanel extends Component
 
 	public function mount()
 	{
+		$this->ensureAdmin();
 		$this->users = User::with('role')->get();
 		$this->roles = Role::all();
 		$this->customerTypes = CustomerType::all();
@@ -52,6 +56,7 @@ class ConfigurationPanel extends Component
 	
 	public function render()
 	{
+		$this->ensureAdmin();
 		// Accede a los archivos dentro de la carpeta 'laravel-backups' utilizando el disco 'backups'
 		$backups = collect(Storage::disk('backups')->files('LEO AutoParts'))->map(function ($file) {
 			return basename($file);
@@ -62,24 +67,35 @@ class ConfigurationPanel extends Component
 
 	public function updateRole()
 	{
+		$this->ensureAdmin();
 		$this->validate();
 		
 		$user = User::find($this->selectedUserId);
 		
 		if ($user) {
+			if ($user->is(Auth::user()) && (int) $this->selectedRoleId !== (int) $user->role_id) {
+				abort(422, 'No puede cambiar su propio rol.');
+			}
+			if ($user->hasRole('Administrador') && (int) $this->selectedRoleId !== (int) $user->role_id
+				&& User::where('role_id', $user->role_id)->where('is_active', true)->count() <= 1) {
+				abort(422, 'Debe existir al menos un administrador activo.');
+			}
+
+			$oldRole = $user->role_id;
 			$user->role_id = $this->selectedRoleId;
 			$user->save();
-			$this->users = User::with('role')->get(); // AQUI REFRESCO LISTA
+			AuditService::record('user.role_updated', $user, ['role_id' => $oldRole], ['role_id' => $user->role_id]);
+			$this->users = User::with('role')->get();
 			$this->dispatch('roleUpdated');
 		}
 	}
 
 	public function createBackup()
 	{
+		$this->ensureAdmin();
 		try {
-			$pathToArtisan = base_path('artisan');
-			$command = 'php ' . $pathToArtisan . ' backup:run --only-db';
-			exec($command);
+			$exitCode = Artisan::call('backup:run', ['--only-db' => true]);
+			if ($exitCode !== 0) { throw new Exception('No se pudo crear el respaldo.'); }
 
 			$this->dispatch('backupSaveSuccess');
 		} catch (Exception $e) {
@@ -89,60 +105,22 @@ class ConfigurationPanel extends Component
 
 	public function restoreBackup($backupFile)
 	{
-		try {
-			$zipFilePath = Storage::disk('backups')->path("LEO AutoParts/{$backupFile}");
-			$extractPath = storage_path('app/laravel-backups/LEO AutoParts/extracted');
+		abort_unless(auth()->user()?->hasRole('Administrador'), 403);
 
-			if (!file_exists($zipFilePath)) {
-				throw new \Exception('El archivo de respaldo no existe.');
-			}
-	
-			if (!file_exists($extractPath)) {
-				mkdir($extractPath, 0755, true);
-			}
-	
-			$zip = new \ZipArchive;
-			
-			if ($zip->open($zipFilePath) === TRUE) {
-				$zip->extractTo($extractPath); 
-				$zip->close();
-			} else {
-				throw new \Exception('No se pudo descomprimir el archivo.');
-			}
+		$available = collect(Storage::disk('backups')->files('LEO AutoParts'))
+			->map(fn (string $file) => basename($file));
 
-			// Llamar a la restauración de la base de datos
-			//$this->restoreDatabase($extractPath);
-	
-			$this->dispatch('backupRestoreSuccess');
-		} catch (\Exception $e) {
+		if (!$available->contains((string) $backupFile)) {
 			$this->dispatch('backupRestoreFail');
+			return;
 		}
+
+		// La restauración es destructiva: permanece deshabilitada hasta contar
+		// con confirmación reforzada, validación del ZIP y rollback probado.
+		$this->dispatch('backupRestoreUnavailable');
 	}
-
-	// public function restoreDatabase($extractPath)
-	// {
-	// 	//try {
-	// 		$sqlFile = $extractPath . '/db-dumps/mysql-leo_autoparts.sql';
-			
-	// 		if (!file_exists($sqlFile)) {
-	// 			throw new \Exception('El archivo SQL no existe dentro del respaldo.');
-	// 		}
-
-	// 		// Convertir las barras para compatibilidad con Windows
-	// 		$sqlFile = str_replace('/', '\\', $sqlFile);
-
-	// 		$databaseName = env('DB_DATABASE');
-	// 		$databaseUsername = env('DB_USERNAME');
-	// 		$databasePassword = env('DB_PASSWORD');
-
-	// 		$command = "mysql -u {$databaseUsername} -p{$databasePassword} {$databaseName} < \"{$sqlFile}\"";
-	// 		dd($command);
-	// 		exec($command);
-
-	// 		//$this->deleteExtractedFiles($extractPath);
-
-	// 	// } catch (\Exception $e) {
-	// 	// 	throw new \Exception('Error al restaurar la base de datos: ' . $e->getMessage());
-	// 	// }
-	// }
+	private function ensureAdmin(): void
+	{
+		abort_unless(Auth::user()?->is_active && Auth::user()?->hasRole('Administrador'), 403);
+	}
 }

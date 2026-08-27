@@ -35,6 +35,13 @@
 			{{ __('Invoicing') }}
 		</a>
 
+		@if(auth()->user()?->hasAnyRole(['Administrador', 'Vendedor']))
+		<a href="{{ route('cash') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
+			<span class="mx-4 flex size-6 items-center justify-center rounded-full border border-white text-sm font-bold">$</span>
+			Caja
+		</a>
+		@endif
+
 		<div class="border-t border-gray-600"></div> <!-- Separador -->
 
 		<a href="{{ route('salesHistory') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">

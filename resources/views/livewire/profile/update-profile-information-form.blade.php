@@ -11,7 +11,7 @@ new class extends Component
 {
 	public string $name = '';
 	public string $email = '';
-	public string $role_id = '';
+	public ?int $role_id = null;
 
 	public $role;
 
@@ -26,7 +26,7 @@ new class extends Component
 		$this->email = Auth::user()->email;
 		$this->role_id = Auth::user()->role_id;
 
-		$this->role = Role::find($this->role_id)->name;
+		$this->role = Role::find($this->role_id)?->name ?? 'Sin rol asignado';
 	}
 
 	/**

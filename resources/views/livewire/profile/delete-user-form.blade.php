@@ -1,6 +1,7 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use App\Services\AuditService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 
@@ -17,7 +18,11 @@ new class extends Component
             'password' => ['required', 'string', 'current_password'],
         ]);
 
-        tap(Auth::user(), $logout(...))->delete();
+        $user = Auth::user();
+        $old = ['is_active' => $user->is_active];
+        $user->update(['is_active' => false]);
+        AuditService::record('user.self_deactivated', $user, $old, ['is_active' => false]);
+        $logout();
 
         $this->redirect('/', navigate: true);
     }

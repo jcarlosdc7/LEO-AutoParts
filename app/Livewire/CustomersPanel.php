@@ -69,12 +69,12 @@ class CustomersPanel extends Component
 
 	public function render()
 	{
-		$customers = Customer::paginate(10, pageName: 'pageCustomer');
+		$customers = Customer::where('is_active', true)->paginate(10, pageName: 'pageCustomer');
 
 		// EN CASO DE QUE LA ULTIMA PAGINA SE QUEDE SIN REGISTROS PARA RENDERIZAR
 		if($customers->count() === 0) {
 			$this->previousPage(pageName: 'pageCustomer');
-			$customers = Customer::paginate(10, pageName: 'pageCustomer');
+			$customers = Customer::where('is_active', true)->paginate(10, pageName: 'pageCustomer');
 		}
 
 		return view('livewire.lwCustomers.customers-panel', compact('customers'));
@@ -98,7 +98,7 @@ class CustomersPanel extends Component
 
 	public function destroy($id) 
 	{
-		Customer::destroy($id);
+		Customer::findOrFail($id)->update(['is_active' => false]);
 		//$this->customers = Customer::all();
 	}
 

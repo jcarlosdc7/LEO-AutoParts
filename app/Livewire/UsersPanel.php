@@ -4,92 +4,116 @@ namespace App\Livewire;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AuditService;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Livewire\Component;
 use Livewire\WithPagination;
 
-use Illuminate\Validation\Rules;
-use Illuminate\Support\Facades\Hash;
-
 class UsersPanel extends Component
 {
-	use WithPagination;
+    use WithPagination;
 
-	public User $user;
-	public Role $userRole;
+    public User $user;
+    public $roles;
+    public bool $isEditing = false;
+    public string $password = '';
+    public string $password_confirmation = '';
 
-	public $roles;
+    public function mount(): void
+    {
+        $this->ensureAdmin();
+        $this->user = new User(['role_id' => 3, 'is_active' => true]);
+        $this->roles = Role::orderBy('name')->get();
+    }
 
-	public $modal = false;
-	public $isEditing;
+    public function render()
+    {
+        $this->ensureAdmin();
+        return view('livewire.lwUsers.users-panel', [
+            'users' => User::with('role')->orderBy('name')->paginate(10, pageName: 'pageUser'),
+        ]);
+    }
 
-	protected $rules = [
-		'user.name' => 'required',
-		'user.email' => 'required',
-		'user.role_id' => 'required',
-	];
+    public function create(): void
+    {
+        $this->ensureAdmin();
+        $this->resetValidation();
+        $this->isEditing = false;
+        $this->password = '';
+        $this->password_confirmation = '';
+        $this->user = new User(['role_id' => 3, 'is_active' => true]);
+        $this->dispatch('open-modal', 'modal-form-user');
+    }
 
-	public function mount() 
-	{
-		$this->user = new User();
+    public function update(int $id): void
+    {
+        $this->ensureAdmin();
+        $this->user = User::findOrFail($id);
+        $this->isEditing = true;
+        $this->password = '';
+        $this->password_confirmation = '';
+        $this->resetValidation();
+        $this->dispatch('open-modal', 'modal-form-user');
+    }
 
-		$this->roles = Role::all();
-	}
+    public function save(): void
+    {
+        $this->ensureAdmin();
+        $rules = [
+            'user.name' => ['required', 'string', 'max:255'],
+            'user.email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($this->user->id)],
+            'user.role_id' => ['required', 'exists:roles,id'],
+            'user.is_active' => ['boolean'],
+            'password' => [$this->user->exists ? 'nullable' : 'required', 'confirmed', Password::defaults()],
+        ];
+        $this->validate($rules);
 
-	public function render()
-	{
-		$users = User::paginate(10, pageName: 'pageUser');
+        if ($this->user->exists && $this->user->is(Auth::user()) && !$this->user->is_active) {
+            $this->addError('user.is_active', 'No puede desactivar su propia cuenta.');
+            return;
+        }
 
-		// EN CASO DE QUE LA ULTIMA PAGINA SE QUEDE SIN REGISTROS PARA RENDERIZAR
-		if($users->count() === 0) {
-			$this->previousPage(pageName: 'pageUser');
-			$users = User::paginate(10, pageName: 'pageUser');
-		}
+        $old = $this->user->exists ? $this->user->getOriginal() : [];
+        if ($this->password !== '') {
+            $this->user->password = Hash::make($this->password);
+        }
+        $this->user->save();
+        AuditService::record($this->isEditing ? 'user.updated' : 'user.created', $this->user, $old, $this->user->getAttributes());
 
-		return view('livewire.lwUsers.users-panel', compact('users'));
-	}
+        $this->dispatch('close-modal', 'modal-form-user');
+        $this->user = new User(['role_id' => 3, 'is_active' => true]);
+        $this->password = '';
+        $this->password_confirmation = '';
+        $this->isEditing = false;
+    }
 
-	// ========================== CRUD ==========================
-	public function create() 
-	{
-		$this->resetValidation();
-		$this->dispatch('open-modal', 'modal-form-user');
-	}
+    public function destroy(int $id): void
+    {
+        $this->ensureAdmin();
+        $user = User::with('role')->findOrFail($id);
 
-	public function update($id) 
-	{
-		$this->isEditing = true;
-		$this->user = User::find($id);
-		
-		$this->resetValidation();
-		$this->dispatch('open-modal', 'modal-form-user');
-	}
+        if ($user->is(Auth::user())) {
+            abort(422, 'No puede desactivar su propia cuenta.');
+        }
+        if ($user->hasRole('Administrador') && User::where('role_id', $user->role_id)->where('is_active', true)->count() <= 1) {
+            abort(422, 'Debe existir al menos un administrador activo.');
+        }
 
-	public function destroy($id) 
-	{
-		User::destroy($id);
-		//$this->users = User::all();
-	}
+        $old = ['is_active' => $user->is_active];
+        $user->update(['is_active' => false]);
+        AuditService::record('user.deactivated', $user, $old, ['is_active' => false]);
+    }
 
-	public function save()
-	{
-		if($this->user->role_id == null){
-			$this->user->role_id = 3;
-		}
-		
-		//$this->validate();
-		$this->user->update(['role_id', $this->user->role_id]);
+    public function getUserRole(?int $id): string
+    {
+        return Role::find($id)?->name ?? 'Sin rol';
+    }
 
-		$this->dispatch('close-modal', 'modal-form-user');
-
-		//$this->users = User::all();
-		$this->user = new User();
-		$this->isEditing = false;
-	}
-
-	// ========================== ADICIONALES ==========================
-	public function getUserRole($id) 
-	{
-		$this->userRole = Role::find($id);
-		return $this->userRole->name;
-	}
+    private function ensureAdmin(): void
+    {
+        abort_unless(Auth::user()?->is_active && Auth::user()?->hasRole('Administrador'), 403);
+    }
 }

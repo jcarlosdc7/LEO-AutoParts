@@ -9,7 +9,9 @@ class Supplier extends Model
 {
 	use HasFactory;
 
-	protected $fillable = ['name', 'contact', 'phone', 'address', 'status'];
+	protected $casts = ['is_active' => 'boolean'];
+
+	protected $fillable = ['name', 'contact', 'phone', 'address', 'is_active'];
 
 	public function products()
 	{

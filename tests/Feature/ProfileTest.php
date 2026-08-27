@@ -13,8 +13,7 @@ test('profile page is displayed', function () {
     $response
         ->assertOk()
         ->assertSeeVolt('profile.update-profile-information-form')
-        ->assertSeeVolt('profile.update-password-form')
-        ->assertSeeVolt('profile.delete-user-form');
+        ->assertSeeVolt('profile.update-password-form');
 });
 
 test('profile information can be updated', function () {
@@ -55,7 +54,7 @@ test('email verification status is unchanged when the email address is unchanged
     $this->assertNotNull($user->refresh()->email_verified_at);
 });
 
-test('user can delete their account', function () {
+test('user can deactivate their account without deleting financial history', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user);
@@ -69,7 +68,7 @@ test('user can delete their account', function () {
         ->assertRedirect('/');
 
     $this->assertGuest();
-    $this->assertNull($user->fresh());
+    $this->assertFalse($user->fresh()->is_active);
 });
 
 test('correct password must be provided to delete account', function () {

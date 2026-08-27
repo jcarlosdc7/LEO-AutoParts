@@ -17,7 +17,7 @@ class RoleMiddleware
     {
         $user = $request->user();
 
-        if (!$user || !$user->role || !in_array($user->role->name, $roles)) {
+        if (!$user || !$user->is_active || !$user->role || !in_array($user->role->name, $roles, true)) {
             abort(403, 'ACCESO DENEGADO');
         }
 

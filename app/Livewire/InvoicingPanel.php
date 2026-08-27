@@ -8,8 +8,8 @@ use App\Models\Customer;
 use App\Models\CustomerType;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\SaleDetail;
 use App\Models\Supplier;
+use App\Services\SaleService;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Storage;
@@ -90,7 +90,7 @@ class InvoicingPanel extends Component
 		// CLIENTES
 		$this->customer = new Customer();
 		$this->customer_types = CustomerType::all();
-		$this->customers = Customer::all();
+		$this->customers = Customer::where('is_active', true)->get();
 
 		// PRODUCTOS
 		$this->product = new Product();
@@ -104,19 +104,19 @@ class InvoicingPanel extends Component
 		// PRODUCTOS 
 		switch($this->searchMode) {
 			case 'Nombre':
-				$products = Product::where('name', 'like', '%' . $this->searching . '%')->get();
+				$products = Product::where('is_active', true)->where('name', 'like', '%' . $this->searching . '%')->get();
 				break;
 
 			case 'Código':
-				$products = Product::where('code', 'like', '%' . $this->searching . '%')->get();
+				$products = Product::where('is_active', true)->where('code', 'like', '%' . $this->searching . '%')->get();
 				break;
 
 			case 'Marca':
-				$products = Product::where('brand', 'like', '%' . $this->searching . '%')->get();
+				$products = Product::where('is_active', true)->where('brand', 'like', '%' . $this->searching . '%')->get();
 				break;
 			
 			default:
-				$products = Product::all();
+				$products = Product::where('is_active', true)->get();
 				break;
 		}
 
@@ -141,7 +141,8 @@ class InvoicingPanel extends Component
 
 	// AÑADIR PRODUCTO A LA FACTURA
 	public function addToInvoice($id) {
-		$newProduct = Product::find($id);
+		$this->validate(['productCount' => 'required|integer|min:1|max:999']);
+		$newProduct = Product::where('is_active', true)->find($id);
 
 		if (!$newProduct) {
 			return;
@@ -166,7 +167,7 @@ class InvoicingPanel extends Component
 		if ($index !== false) {
 			// SI YA EXISTE, AUMENTAR LA CANTIDAD
 			$this->invoiceTable[$index]['quantity'] += $this->productCount;
-			$this->invoiceTable[$index]['subtotal'] = $this->invoiceTable[$index]['price'] * $this->productCount;
+			$this->invoiceTable[$index]['subtotal'] = $this->invoiceTable[$index]['price'] * $this->invoiceTable[$index]['quantity'];
 		} else {
 			// SI NO EXISTE, AGREGARLO
 			$this->invoiceTable[] = [
@@ -229,70 +230,34 @@ class InvoicingPanel extends Component
 		$this->customer = new Customer();
 	}
 
-	public function saveInvoice()
+	public function saveInvoice(SaleService $saleService)
 	{
-		// Validar que haya productos en la factura
-		if (count($this->invoiceTable) == 0 || $this->cId == null) {
-			return;
-		}
-		
-		// Obtener informacion del usuario logueado
-		$user = Auth::user();
-
-		// Crear la venta
-		$sale = Sale::create([
-			'customer_id' => $this->cId,
-			'user_id' => $user->id,
-			'total' => $this->totalFinal,
-			'sale_date' => now(), 
-			'payment_method_id' => $this->paymentMethod,
+		$this->validate([
+			'cId' => ['required', 'exists:customers,id'],
+			'paymentMethod' => ['required', 'exists:payment_methods,id'],
+			'amount' => [$this->paymentMethod == 1 ? 'required' : 'nullable', 'numeric', 'min:0'],
 		]);
 
-		// Recorrer los productos de la factura y guardarlos en la tabla de detalles
-		foreach ($this->invoiceTable as $item) {
-			$saleDetail = SaleDetail::create([
-				'sale_id' => $sale->id,
-				'product_id' => $item['id'],
-				'quantity' => $item['quantity'],
-				'price' => $item['price'],
-				'total' => $item['subtotal'],
-			]);
+		$sale = $saleService->create(
+			$this->invoiceTable,
+			(int) $this->cId,
+			(int) $this->paymentMethod,
+			$this->amount !== null ? (float) $this->amount : null,
+			Auth::user(),
+		);
 
-			// Descontar el stock de los productos
-			$product = Product::find($item['id']);
-			if ($product) {
-				$product->stock -= $item['quantity']; // Restar la cantidad vendida del stock
-				$product->save();  // Guardar el cambio en el stock
-			}
-		}
-		
-		// Generación del PDF con DOMPDF
 		$options = new Options();
 		$options->set('isHtml5ParserEnabled', true);
-		$options->set('isPhpEnabled', true);
+		$options->set('isPhpEnabled', false);
+		$options->set('isRemoteEnabled', false);
+		$options->setChroot(public_path());
 		$dompdf = new Dompdf($options);
-	
-		// Obtener el contenido HTML de la factura (vista Blade)
-		$html = view('exports.invoice', ['sale' => $sale])->render();
-	
-		// Cargar el HTML en DOMPDF
-		$dompdf->loadHtml($html);
-	
-		// Establecer tamaño de papel A4 y orientación vertical
+		$dompdf->loadHtml(view('exports.invoice', ['sale' => $sale])->render());
 		$dompdf->setPaper('A4', 'portrait');
-	
-		// Renderizar el PDF
 		$dompdf->render();
-	
-		// Nombre del archivo PDF
-		$filename = 'LEO AutoParts - Factura_No_' . $sale->id . '.pdf';
-	
-		// Guardar el PDF en el almacenamiento público
-		Storage::disk('public')->put('facturas/' . $filename, $dompdf->output());
-	
-		// Emitir evento Livewire con la URL del PDF
-		$this->dispatch('downloadInvoice', asset('storage/facturas/' . $filename));
-		
+
+		Storage::disk('local')->put("invoices/invoice-{$sale->id}.pdf", $dompdf->output());
+		$this->dispatch('downloadInvoice', route('invoices.download', $sale));
 		$this->clearInvoice();
 	}
 

@@ -12,7 +12,12 @@ class Product extends Model
 	protected $fillable = [
 		'code', 'name', 'description', 'brand', 
 		'model', 'supplier_id', 'category_id', 'stock', 
-		'min_stock', 'price', 'status'
+		'min_stock', 'price', 'is_active'
+	];
+
+	protected $casts = [
+		'price' => 'decimal:2',
+		'is_active' => 'boolean',
 	];
 
 	public function supplier()

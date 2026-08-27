@@ -65,26 +65,26 @@ class InventoryPanel extends Component
 	{
 		switch($this->searchMode) {
 			case 'Nombre':
-				$products = Product::where('name', 'like', '%' . $this->searching . '%') ->paginate(10, pageName: 'pageProduct');
+				$products = Product::where('is_active', true)->where('name', 'like', '%' . $this->searching . '%') ->paginate(10, pageName: 'pageProduct');
 				break;
 
 			case 'Código':
-				$products = Product::where('code', 'like', '%' . $this->searching . '%') ->paginate(10, pageName: 'pageProduct');
+				$products = Product::where('is_active', true)->where('code', 'like', '%' . $this->searching . '%') ->paginate(10, pageName: 'pageProduct');
 				break;
 
 			case 'Marca':
-				$products = Product::where('brand', 'like', '%' . $this->searching . '%') ->paginate(10, pageName: 'pageProduct');
+				$products = Product::where('is_active', true)->where('brand', 'like', '%' . $this->searching . '%') ->paginate(10, pageName: 'pageProduct');
 				break;
 			
 			default:
-				$products = Product::paginate(10, pageName: 'pageProduct');
+				$products = Product::where('is_active', true)->paginate(10, pageName: 'pageProduct');
 				break;
 		}
 
 		// EN CASO DE QUE LA ULTIMA PAGINA SE QUEDE SIN REGISTROS PARA RENDERIZAR AQUI REGRESAMOS A LA PAGINA ANTERIOR Y RECARGAMOS
 		if($products->count() === 0) {
 			$this->previousPage(pageName: 'pageProduct');
-			$products = Product::paginate(10, pageName: 'pageProduct');
+			$products = Product::where('is_active', true)->paginate(10, pageName: 'pageProduct');
 		}
 		
 		return view('livewire.lwInventory.inventory-panel', compact('products'));
@@ -108,7 +108,7 @@ class InventoryPanel extends Component
 
 	public function destroy($id) 
 	{
-		Product::destroy($id);
+		Product::findOrFail($id)->update(['is_active' => false]);
 	}
 
 	public function save()
