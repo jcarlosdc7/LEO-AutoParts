@@ -72,4 +72,51 @@ class Sale extends Model
     {
         return $this->belongsTo(CashSession::class);
     }
+
+    public function saleReturns()
+    {
+        return $this->hasMany(SaleReturn::class);
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+    public function creditNotes()
+    {
+        return $this->hasMany(CreditNote::class);
+    }
+
+    public function getRefundedTotalAttribute(): string
+    {
+        return (string) $this->refunds()->where('status', 'completed')->sum('amount');
+    }
+
+    public function getNetEconomicValueAttribute(): string
+    {
+        return bcsub((string) $this->total, $this->refunded_total, 2);
+    }
+
+    public function getEconomicStatusAttribute(): string
+    {
+        if ($this->status === 'voided') {
+            return 'voided';
+        }
+
+        $details = $this->relationLoaded('saleDetails') ? $this->saleDetails : $this->saleDetails()->get();
+        $returns = $this->relationLoaded('saleReturns')
+            ? $this->saleReturns
+            : $this->saleReturns()->with('items')->get();
+        $originalQuantity = (int) $details->sum('quantity');
+        $returnedQuantity = (int) $returns->where('status', 'completed')->sum(
+            fn (SaleReturn $saleReturn): int => (int) $saleReturn->items->sum('quantity'),
+        );
+
+        if ($returnedQuantity === 0) {
+            return 'completed';
+        }
+
+        return $returnedQuantity >= $originalQuantity ? 'fully_returned' : 'partially_returned';
+    }
 }

@@ -82,8 +82,8 @@
 							</div>
 						</td>
 						<td class="py-2 px-4 border-b border-gray-300 text-center text-xs font-bold uppercase">
-							<span class="rounded-full px-2 py-1 {{ $sale->status === 'voided' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700' }}">
-								{{ $sale->status === 'voided' ? 'Anulada' : 'Completada' }}
+							<span class="rounded-full px-2 py-1 {{ $sale->economic_status === 'voided' ? 'bg-red-100 text-red-700' : ($sale->economic_status === 'fully_returned' ? 'bg-gray-200 text-gray-800' : ($sale->economic_status === 'partially_returned' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700')) }}">
+								{{ match ($sale->economic_status) { 'voided' => 'Anulada', 'fully_returned' => 'Devuelta total', 'partially_returned' => 'Devuelta parcial', default => 'Completada' } }}
 							</span>
 						</td>
 
@@ -97,6 +97,9 @@
 									</svg>
 								</a>
 								@if (auth()->user()?->hasRole('Administrador') && $sale->status === 'completed')
+									<button type="button" class="mx-2 text-xs font-bold text-amber-700 hover:text-amber-900" wire:click="requestReturn({{ $sale->id }})" title="Devolver productos">
+										Devolver
+									</button>
 									<button type="button" class="z-30 cursor-pointer" wire:click="requestVoid({{ $sale->id }})" title="Anular venta">
 										<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5 mx-2 fill-gray-700 hover:fill-red-600">
 											<path fill-rule="evenodd" d="M9.401 3.003c.114-.298.4-.495.719-.495h3.76c.319 0 .605.197.719.495l.58 1.522 1.63.08a.75.75 0 0 1 .709.787l-.75 14.25a.75.75 0 0 1-.749.711H7.981a.75.75 0 0 1-.749-.711l-.75-14.25a.75.75 0 0 1 .709-.787l1.63-.08.58-1.522ZM10.5 8.25a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm3 0a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
@@ -199,8 +202,27 @@
 				</table>
 
 				<div class="text-right text-lg font-black px-4 mt-2">
-					<span>Total: ${{ number_format($selectedSale->total, 2) }}</span>
+					<div>Total original: ${{ number_format($selectedSale->total, 2) }}</div>
+					<div class="text-red-700">Reembolsado: ${{ number_format($selectedSale->refunded_total, 2) }}</div>
+						<div class="text-emerald-700">Valor neto: ${{ number_format($selectedSale->net_economic_value, 2) }}</div>
+						<div>Estado económico: {{ match ($selectedSale->economic_status) { 'voided' => 'Anulada', 'fully_returned' => 'Devuelta totalmente', 'partially_returned' => 'Devuelta parcialmente', default => 'Completada' } }}</div>
 				</div>
+
+				@if ($selectedSale->saleReturns->isNotEmpty())
+					<div class="mt-6 border-t pt-4">
+						<h3 class="font-bold mb-2">Devoluciones y notas de crédito</h3>
+						@foreach ($selectedSale->saleReturns as $saleReturn)
+							<div class="mb-3 rounded border border-gray-200 p-3 text-sm">
+								<div class="font-semibold">{{ $saleReturn->return_number }} · {{ $saleReturn->creditNote?->number }}</div>
+								<div>{{ $saleReturn->reason }}</div>
+								<div>Reembolso: ${{ number_format($saleReturn->refund?->amount, 2) }} vía {{ $saleReturn->refund?->paymentMethod?->name }}</div>
+								@foreach ($saleReturn->items as $item)
+									<div>{{ $item->product->name }}: {{ $item->quantity }} · {{ $item->restock ? 'reingresó a stock' : 'sin reingreso a stock' }}</div>
+								@endforeach
+							</div>
+						@endforeach
+					</div>
+				@endif
 			</div>
 			@endif
 		</x-slot>
@@ -210,6 +232,31 @@
 				<img src="{{ asset('graphicResources/LEO AutoParts LINE BLACK.png') }}" class="w-fit h-5 object-scale-down">
 			</div>
 		</x-slot>
+	</x-dialog-modal>
+
+	<x-dialog-modal name="modal-return-sale" maxWidth="4xl">
+		<x-slot name="title">Procesar devolución y reembolso</x-slot>
+		<x-slot name="content">
+			<div class="space-y-4">
+				@error('returnItems') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
+				@foreach ($returnItems as $index => $item)
+					<div class="grid grid-cols-6 gap-3 items-end rounded border p-3" wire:key="return-item-{{ $item['sale_detail_id'] }}">
+						<div class="col-span-2"><strong>{{ $item['product'] }}</strong><div class="text-xs">Original {{ $item['original'] }} · Devuelto {{ $item['returned'] }} · Disponible {{ $item['available'] }}</div></div>
+						<div><x-input-label value="Cantidad" /><x-text-input type="number" min="0" max="{{ $item['available'] }}" wire:model="returnItems.{{ $index }}.quantity" class="w-full" /></div>
+						<div><x-input-label value="Condición" /><select wire:model.live="returnItems.{{ $index }}.condition" class="w-full rounded border-gray-300"><option value="sellable">Vendible</option><option value="damaged">Dañado</option><option value="defective">Defectuoso</option><option value="quarantine">Cuarentena</option></select></div>
+						<label class="flex items-center gap-2"><input type="checkbox" wire:model="returnItems.{{ $index }}.restock"> Reingresar</label>
+						<div class="text-right">${{ number_format($this->returnLineTotal($item), 2) }}</div>
+					</div>
+				@endforeach
+				<div class="rounded bg-gray-900 p-3 text-right text-lg font-black text-white">Total a reembolsar: ${{ number_format($this->returnRefundTotal(), 2) }}</div>
+				<div><x-input-label value="Motivo obligatorio" /><x-textarea wire:model="returnReason" rows="3" class="w-full" /><x-input-error :messages="$errors->get('returnReason')" /></div>
+				<div class="grid grid-cols-2 gap-4">
+					<div><x-input-label value="Método de reembolso" /><select wire:model="refundMethodId" class="w-full rounded border-gray-300">@foreach ($refundMethods ?? [] as $method)<option value="{{ $method->id }}">{{ $method->name }}</option>@endforeach</select></div>
+					<div><x-input-label value="Referencia" /><x-text-input wire:model="refundReference" class="w-full" /></div>
+				</div>
+			</div>
+		</x-slot>
+		<x-slot name="footer"><x-secondary-button wire:click="$dispatch('close-modal', 'modal-return-sale')">Cancelar</x-secondary-button><x-danger-button class="ms-3" wire:click="processReturn" wire:loading.attr="disabled">Confirmar devolución</x-danger-button></x-slot>
 	</x-dialog-modal>
 
 	<x-dialog-modal name="modal-void-sale" maxWidth="lg">
