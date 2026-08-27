@@ -183,7 +183,7 @@
 						</div>
 					</div>
 
-					@if ($this->paymentMethod == 1) 
+					@if ($this->paymentAffectsCash)
 						<div class="flex w-full justify-center">
 							<div class="flex-col p-1 justify-center items-center">
 								<x-input-label class="ms-2">Importe recibido</x-input-label>
@@ -215,14 +215,12 @@
 						<div class="flex items-center mx-1 font-medium">
 							Método de pago: 
 						</div>
-						<div class="flex items-center mx-1">
-							<input class="focus:ring-transparent hover:cursor-pointer" type="radio" name="paymentMethod" value="1" class="mr-2" wire:model.live="paymentMethod">
-							<label class="text-sm text-gray-950 ms-1">Efectivo</label>
-						</div>
-						<div class="flex items-center mx-1">
-							<input class="focus:ring-transparent hover:cursor-pointer" type="radio" name="paymentMethod" value="2" class="mr-2" wire:model.live="paymentMethod">
-							<label class="text-sm text-gray-950 ms-1">PayPal</label>
-						</div>
+						@foreach ($this->paymentMethods as $method)
+							<div class="flex items-center mx-1">
+								<input class="focus:ring-transparent hover:cursor-pointer mr-2" type="radio" name="paymentMethod" value="{{ $method->id }}" wire:model.live="paymentMethod">
+								<label class="text-sm text-gray-950 ms-1">{{ $method->name }}</label>
+							</div>
+						@endforeach
 					</div>
 					
 					<div class="border-t border-gray-300 "></div> <!-- Separador -->
@@ -232,7 +230,7 @@
 						<a wire:click="clearInvoice" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md h-10 hover:cursor-pointer">
 							Cancelar
 						</a>
-						@if (count($this->invoiceTable) == 0 || $this->cId == null || $this->paymentMethod == 1 && ($this->amount === null || $this->amount < $this->totalFinal))
+						@if (count($this->invoiceTable) == 0 || $this->cId == null || $this->paymentAffectsCash && ($this->amount === null || $this->amount < $this->totalFinal))
 							<a class="px-4 py-2 bg-neutral-400 text-white font-bold rounded-md h-10 hover:cursor-pointer" disabled>
 								Procesar
 							</a> 

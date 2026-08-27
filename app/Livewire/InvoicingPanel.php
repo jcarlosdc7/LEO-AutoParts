@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\CustomerType;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Services\SaleService;
@@ -42,7 +43,11 @@ class InvoicingPanel extends Component
 
     public $customers;
 
-    public $paymentMethod = 1;
+    public $paymentMethod;
+
+    public $paymentMethods;
+
+    public bool $paymentAffectsCash = false;
 
     public $cities = [
         'Managua',
@@ -103,6 +108,13 @@ class InvoicingPanel extends Component
         $this->customer = new Customer;
         $this->customer_types = CustomerType::all();
         $this->customers = Customer::where('is_active', true)->get();
+        $this->paymentMethods = PaymentMethod::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+        $defaultPaymentMethod = $this->paymentMethods->firstWhere('code', 'CASH') ?? $this->paymentMethods->first();
+        $this->paymentMethod = $defaultPaymentMethod?->id;
+        $this->paymentAffectsCash = (bool) $defaultPaymentMethod?->affects_cash_drawer;
 
         // PRODUCTOS
         $this->product = new Product;
@@ -255,7 +267,7 @@ class InvoicingPanel extends Component
         $this->validate([
             'cId' => ['required', 'exists:customers,id'],
             'paymentMethod' => ['required', 'exists:payment_methods,id'],
-            'amount' => [$this->paymentMethod == 1 ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'amount' => [$this->paymentAffectsCash ? 'required' : 'nullable', 'numeric', 'min:0'],
         ]);
 
         $sale = $saleService->create(
@@ -286,6 +298,17 @@ class InvoicingPanel extends Component
         if ($this->totalFinal < $this->amount && $this->amount != '') {
             $this->change = $this->amount - $this->totalFinal;
         } else {
+            $this->change = 0;
+        }
+    }
+
+    public function updatedPaymentMethod(): void
+    {
+        $method = $this->paymentMethods->firstWhere('id', (int) $this->paymentMethod);
+        $this->paymentAffectsCash = (bool) $method?->affects_cash_drawer;
+
+        if (! $this->paymentAffectsCash) {
+            $this->amount = null;
             $this->change = 0;
         }
     }

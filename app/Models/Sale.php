@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use LogicException;
 
 class Sale extends Model
 {
@@ -18,6 +19,24 @@ class Sale extends Model
         'total' => 'decimal:2', 'amount' => 'decimal:2', 'change' => 'decimal:2',
         'sale_date' => 'datetime', 'voided_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::updating(function (Sale $sale): void {
+            $immutableAttributes = [
+                'customer_id', 'user_id', 'cash_session_id', 'total', 'amount',
+                'change', 'sale_date', 'payment_method_id',
+            ];
+
+            if (array_intersect(array_keys($sale->getDirty()), $immutableAttributes)) {
+                throw new LogicException('Los datos financieros originales de una venta no pueden modificarse.');
+            }
+        });
+
+        static::deleting(function (): never {
+            throw new LogicException('Las ventas contabilizadas deben anularse, nunca eliminarse.');
+        });
+    }
 
     public function customer()
     {

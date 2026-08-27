@@ -7,10 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class AuditService
 {
-    public static function record(string $event, ?Model $model = null, array $old = [], array $new = []): void
-    {
+    public static function record(
+        string $event,
+        ?Model $model = null,
+        array $old = [],
+        array $new = [],
+        ?int $actorId = null,
+    ): void {
         AuditLog::create([
-            'user_id' => auth()->id(),
+            'user_id' => $actorId ?? auth()->id(),
             'event' => $event,
             'auditable_type' => $model ? $model::class : null,
             'auditable_id' => $model?->getKey(),

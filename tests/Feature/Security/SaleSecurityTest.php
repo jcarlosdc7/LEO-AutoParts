@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\AuditLog;
+use App\Models\CashMovement;
 use App\Models\CashRegister;
 use App\Models\CashSession;
 use App\Models\Category;
@@ -9,6 +11,9 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\Sale;
+use App\Models\SaleDetail;
+use App\Models\SalePayment;
+use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\SaleService;
@@ -43,9 +48,21 @@ function saleFixture(bool $openCash = true): array
         'supplier_id' => $supplier->id, 'category_id' => $category->id,
         'stock' => 5, 'min_stock' => 1, 'price' => 25.50, 'is_active' => true,
     ]);
-    $payment = PaymentMethod::create(['name' => 'Efectivo']);
+    $payment = PaymentMethod::create([
+        'code' => 'CASH',
+        'name' => 'Efectivo',
+        'affects_cash_drawer' => true,
+        'is_active' => true,
+    ]);
 
     return compact('user', 'customer', 'product', 'payment');
+}
+
+function salesAdministrator(): User
+{
+    $role = Role::firstOrCreate(['name' => 'Administrador']);
+
+    return User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
 }
 
 test('sale totals use database prices and inventory changes atomically', function () {
@@ -88,4 +105,107 @@ test('a sale cannot be recorded without an open cash session', function () {
     app(SaleService::class)->create([
         ['id' => $f['product']->id, 'quantity' => 1],
     ], $f['customer']->id, $f['payment']->id, 30, $f['user']);
+});
+
+test('an administrator voids a sale with compensating stock and cash movements', function () {
+    $f = saleFixture();
+    $administrator = salesAdministrator();
+    $this->actingAs($administrator);
+
+    $sale = app(SaleService::class)->create([
+        ['id' => $f['product']->id, 'quantity' => 2],
+    ], $f['customer']->id, $f['payment']->id, 60, $f['user']);
+
+    $voided = app(SaleService::class)->void($sale, 'Error comprobado en la operación de caja.', $administrator);
+
+    expect($voided->status)->toBe('voided')
+        ->and($voided->voided_by)->toBe($administrator->id)
+        ->and($voided->voided_at)->not->toBeNull()
+        ->and($f['product']->fresh()->stock)->toBe(5)
+        ->and(Sale::count())->toBe(1)
+        ->and(SaleDetail::count())->toBe(1)
+        ->and(SalePayment::count())->toBe(1)
+        ->and(StockMovement::count())->toBe(2)
+        ->and(CashMovement::count())->toBe(2)
+        ->and(AuditLog::where('event', 'sale.voided')->where('user_id', $administrator->id)->count())->toBe(1);
+
+    $this->assertDatabaseHas('stock_movements', [
+        'product_id' => $f['product']->id,
+        'type' => 'sale_void',
+        'quantity' => 2,
+        'stock_before' => 3,
+        'stock_after' => 5,
+    ]);
+    $this->assertDatabaseHas('cash_movements', [
+        'cash_session_id' => $sale->cash_session_id,
+        'type' => 'refund',
+        'amount' => 51,
+        'reference_id' => $sale->id,
+    ]);
+});
+
+test('a voided sale cannot be voided twice', function () {
+    $f = saleFixture();
+    $administrator = salesAdministrator();
+    $this->actingAs($administrator);
+    $service = app(SaleService::class);
+
+    $sale = $service->create([
+        ['id' => $f['product']->id, 'quantity' => 1],
+    ], $f['customer']->id, $f['payment']->id, 30, $f['user']);
+
+    $service->void($sale, 'Primera anulación válida de la venta.', $administrator);
+
+    try {
+        $service->void($sale, 'Segundo intento que debe rechazarse.', $administrator);
+        $this->fail('Expected validation exception.');
+    } catch (ValidationException) {
+        expect($f['product']->fresh()->stock)->toBe(5)
+            ->and(StockMovement::where('type', 'sale_void')->count())->toBe(1)
+            ->and(CashMovement::where('type', 'refund')->count())->toBe(1)
+            ->and(AuditLog::where('event', 'sale.voided')->count())->toBe(1);
+    }
+});
+
+test('cash sale cannot be voided after its cash session is closed', function () {
+    $f = saleFixture();
+    $administrator = salesAdministrator();
+    $this->actingAs($administrator);
+
+    $sale = app(SaleService::class)->create([
+        ['id' => $f['product']->id, 'quantity' => 1],
+    ], $f['customer']->id, $f['payment']->id, 30, $f['user']);
+    $sale->cashSession()->update([
+        'status' => 'closed',
+        'closing_amount' => 75.50,
+        'expected_amount' => 75.50,
+        'difference' => 0,
+        'closed_at' => now(),
+        'closed_by' => $administrator->id,
+    ]);
+
+    try {
+        app(SaleService::class)->void($sale, 'Intento posterior al cierre de caja.', $administrator);
+        $this->fail('Expected validation exception.');
+    } catch (ValidationException) {
+        expect($sale->fresh()->status)->toBe('completed')
+            ->and($f['product']->fresh()->stock)->toBe(4)
+            ->and(CashMovement::where('type', 'refund')->count())->toBe(0);
+    }
+});
+
+test('accounted sales and their financial records cannot be deleted or edited', function () {
+    $f = saleFixture();
+    $sale = app(SaleService::class)->create([
+        ['id' => $f['product']->id, 'quantity' => 1],
+    ], $f['customer']->id, $f['payment']->id, 30, $f['user']);
+
+    expect(fn () => $sale->delete())->toThrow(LogicException::class)
+        ->and(fn () => $sale->saleDetails()->first()->delete())->toThrow(LogicException::class)
+        ->and(fn () => $sale->salePayments()->first()->update(['amount' => 0]))->toThrow(LogicException::class)
+        ->and(fn () => $sale->update(['total' => 0]))->toThrow(LogicException::class);
+
+    expect(Sale::count())->toBe(1)
+        ->and(SaleDetail::count())->toBe(1)
+        ->and(SalePayment::count())->toBe(1);
 });

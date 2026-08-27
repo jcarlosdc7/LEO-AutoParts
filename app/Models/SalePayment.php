@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ImmutableFinancialRecord;
 use Illuminate\Database\Eloquent\Model;
 
 class SalePayment extends Model
 {
+    use ImmutableFinancialRecord;
+
     protected $fillable = ['sale_id', 'payment_method_id', 'cash_session_id', 'amount', 'received_amount', 'change_amount', 'reference'];
 
     protected $casts = ['amount' => 'decimal:2', 'received_amount' => 'decimal:2', 'change_amount' => 'decimal:2'];

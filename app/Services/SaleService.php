@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CashMovement;
 use App\Models\CashSession;
+use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
@@ -26,6 +27,18 @@ class SaleService
         }
 
         return DB::transaction(function () use ($cart, $customerId, $paymentMethodId, $receivedAmount, $user) {
+            $paymentMethod = PaymentMethod::query()
+                ->whereKey($paymentMethodId)
+                ->where('is_active', true)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $paymentMethod) {
+                throw ValidationException::withMessages([
+                    'paymentMethodId' => 'El método de pago no está disponible.',
+                ]);
+            }
+
             $session = CashSession::query()
                 ->where('user_id', $user->id)
                 ->where('status', 'open')
@@ -67,12 +80,12 @@ class SaleService
             }
             $total = round($total, 2);
 
-            if ($paymentMethodId === 1 && ($receivedAmount === null || $receivedAmount < $total)) {
+            if ($paymentMethod->affects_cash_drawer && ($receivedAmount === null || $receivedAmount < $total)) {
                 throw ValidationException::withMessages(['amount' => 'El efectivo recibido debe cubrir el total.']);
             }
 
-            $received = $paymentMethodId === 1 ? round((float) $receivedAmount, 2) : $total;
-            $change = $paymentMethodId === 1 ? round($received - $total, 2) : 0.0;
+            $received = $paymentMethod->affects_cash_drawer ? round((float) $receivedAmount, 2) : $total;
+            $change = $paymentMethod->affects_cash_drawer ? round($received - $total, 2) : 0.0;
 
             $sale = Sale::create([
                 'customer_id' => $customerId,
@@ -121,7 +134,7 @@ class SaleService
                 'change_amount' => $change,
             ]);
 
-            if ($session && $paymentMethodId === 1) {
+            if ($session && $paymentMethod->affects_cash_drawer) {
                 CashMovement::create([
                     'cash_session_id' => $session->id,
                     'user_id' => $user->id,
@@ -134,6 +147,119 @@ class SaleService
             }
 
             return $sale->load(['customer', 'saleDetails.product', 'salePayments']);
+        }, 3);
+    }
+
+    public function void(int|Sale $sale, string $reason, User $actor): Sale
+    {
+        if (! $actor->is_active || ! $actor->hasRole('Administrador')) {
+            abort(403, 'Solo un administrador activo puede anular ventas.');
+        }
+
+        $reason = trim($reason);
+        if (mb_strlen($reason) < 10 || mb_strlen($reason) > 1000) {
+            throw ValidationException::withMessages([
+                'voidReason' => 'El motivo de anulación debe contener entre 10 y 1000 caracteres.',
+            ]);
+        }
+
+        $saleId = $sale instanceof Sale ? $sale->getKey() : $sale;
+
+        return DB::transaction(function () use ($saleId, $reason, $actor) {
+            $lockedSale = Sale::query()->lockForUpdate()->findOrFail($saleId);
+
+            if ($lockedSale->status !== 'completed') {
+                throw ValidationException::withMessages([
+                    'voidReason' => 'La venta ya no está disponible para anulación.',
+                ]);
+            }
+
+            $cashMovement = CashMovement::query()
+                ->where('reference_type', Sale::class)
+                ->where('reference_id', $lockedSale->id)
+                ->where('type', 'sale')
+                ->lockForUpdate()
+                ->first();
+
+            $cashSession = null;
+            if ($cashMovement) {
+                $cashSession = CashSession::query()->lockForUpdate()->findOrFail($cashMovement->cash_session_id);
+                if ($cashSession->status !== 'open') {
+                    throw ValidationException::withMessages([
+                        'voidReason' => 'La caja original ya fue cerrada. Registre una devolución y reembolso en lugar de anular.',
+                    ]);
+                }
+            }
+
+            $details = SaleDetail::query()
+                ->where('sale_id', $lockedSale->id)
+                ->orderBy('product_id')
+                ->lockForUpdate()
+                ->get();
+
+            $products = Product::query()
+                ->whereIn('id', $details->pluck('product_id'))
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($products->count() !== $details->pluck('product_id')->unique()->count()) {
+                throw ValidationException::withMessages([
+                    'voidReason' => 'No fue posible localizar todos los productos históricos de la venta.',
+                ]);
+            }
+
+            foreach ($details as $detail) {
+                $product = $products[$detail->product_id];
+                $before = $product->stock;
+                $product->increment('stock', $detail->quantity);
+
+                StockMovement::create([
+                    'product_id' => $product->id,
+                    'user_id' => $actor->id,
+                    'type' => 'sale_void',
+                    'quantity' => $detail->quantity,
+                    'stock_before' => $before,
+                    'stock_after' => $before + $detail->quantity,
+                    'reference_type' => Sale::class,
+                    'reference_id' => $lockedSale->id,
+                    'notes' => $reason,
+                ]);
+            }
+
+            if ($cashMovement && $cashSession) {
+                CashMovement::create([
+                    'cash_session_id' => $cashSession->id,
+                    'user_id' => $actor->id,
+                    'type' => 'refund',
+                    'amount' => $cashMovement->amount,
+                    'reason' => "Anulación de venta #{$lockedSale->id}",
+                    'notes' => $reason,
+                    'reference_type' => Sale::class,
+                    'reference_id' => $lockedSale->id,
+                ]);
+            }
+
+            $before = $lockedSale->getAttributes();
+            $lockedSale->update([
+                'status' => 'voided',
+                'void_reason' => $reason,
+                'voided_by' => $actor->id,
+                'voided_at' => now(),
+            ]);
+
+            AuditService::record(
+                'sale.voided',
+                $lockedSale,
+                $before,
+                $lockedSale->getAttributes(),
+                $actor->id,
+            );
+
+            return $lockedSale->load([
+                'customer', 'saleDetails.product', 'salePayments', 'cashSession',
+            ]);
         }, 3);
     }
 }

@@ -12,12 +12,24 @@ class PaymentMethodSeeder extends Seeder
      */
     public function run(): void
     {
-        $paymentMethod = new PaymentMethod;
-        $paymentMethod->name = 'Efectivo';
-        $paymentMethod->save();
+        PaymentMethod::updateOrCreate(
+            ['code' => 'CASH'],
+            [
+                'name' => 'Efectivo',
+                'requires_reference' => false,
+                'affects_cash_drawer' => true,
+                'is_active' => true,
+            ]
+        );
 
-        $paymentMethod = new PaymentMethod;
-        $paymentMethod->name = 'PayPal';
-        $paymentMethod->save();
+        PaymentMethod::updateOrCreate(
+            ['code' => 'OTHER'],
+            [
+                'name' => 'Otro',
+                'requires_reference' => true,
+                'affects_cash_drawer' => false,
+                'is_active' => true,
+            ]
+        );
     }
 }

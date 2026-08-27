@@ -9,7 +9,15 @@ class PaymentMethod extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description'];
+    protected $fillable = [
+        'code', 'name', 'description', 'requires_reference', 'affects_cash_drawer', 'is_active',
+    ];
+
+    protected $casts = [
+        'requires_reference' => 'boolean',
+        'affects_cash_drawer' => 'boolean',
+        'is_active' => 'boolean',
+    ];
 
     public function sales()
     {

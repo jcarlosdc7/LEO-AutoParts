@@ -54,6 +54,14 @@
 						</button>
 					</th>
 					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10 whitespace-nowrap">{{ __('Metodo de pago') }}</th>
+					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10 whitespace-nowrap">
+						<button wire:click="sortBy('status')" class="flex items-center justify-center w-full text-white">
+							{{ __('Estado') }}
+							@if ($sortColumn === 'status')
+								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
+							@endif
+						</button>
+					</th>
 					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10">{{ __('Acciones') }}</th>
 				</tr>
 			</thead>
@@ -68,10 +76,15 @@
 						<td class="py-2 px-4 border-b border-gray-300 text-center text-sm text-gray-700">{{ $sale->sale_date }}</td>
 						<td class="py-2 px-4 border-b border-gray-300 text-center text-xs font-black uppercase">
 							<div class="flex justify-center items-center">
-								<div class="px-1 rounded-3xl border w-fit {{ $sale->paymentMethod->id === 1 ? 'bg-green-200 border-green-600 text-green-600' : 'bg-blue-200 border-blue-600 text-blue-600' }}">
+								<div class="px-1 rounded-3xl border w-fit {{ $sale->paymentMethod->code === 'CASH' ? 'bg-green-200 border-green-600 text-green-600' : 'bg-blue-200 border-blue-600 text-blue-600' }}">
 									{{ $sale->paymentMethod->name }}
 								</div>
 							</div>
+						</td>
+						<td class="py-2 px-4 border-b border-gray-300 text-center text-xs font-bold uppercase">
+							<span class="rounded-full px-2 py-1 {{ $sale->status === 'voided' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700' }}">
+								{{ $sale->status === 'voided' ? 'Anulada' : 'Completada' }}
+							</span>
 						</td>
 
 						<!-- BOTONES DE ACCION -->
@@ -83,11 +96,13 @@
 										<path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
 									</svg>
 								</a>
-								<a class="z-30 cursor-pointer" wire:click="$dispatch('deleteSale', { id: {{ $sale->id }} })">
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5 mx-2 fill-gray-700 hover:fill-red-600">
-										<path fill-rule="evenodd" d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z" clip-rule="evenodd" />
-									</svg>
-								</a>
+								@if (auth()->user()?->hasRole('Administrador') && $sale->status === 'completed')
+									<button type="button" class="z-30 cursor-pointer" wire:click="requestVoid({{ $sale->id }})" title="Anular venta">
+										<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5 mx-2 fill-gray-700 hover:fill-red-600">
+											<path fill-rule="evenodd" d="M9.401 3.003c.114-.298.4-.495.719-.495h3.76c.319 0 .605.197.719.495l.58 1.522 1.63.08a.75.75 0 0 1 .709.787l-.75 14.25a.75.75 0 0 1-.749.711H7.981a.75.75 0 0 1-.749-.711l-.75-14.25a.75.75 0 0 1 .709-.787l1.63-.08.58-1.522ZM10.5 8.25a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm3 0a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
+										</svg>
+									</button>
+								@endif
 							</div>
 						</td>
 					</tr>
@@ -197,31 +212,26 @@
 		</x-slot>
 	</x-dialog-modal>
 
-	@script
-	<script>
-		$wire.on('deleteSale', (id) => {
-			Swal.fire({
-				title: "¿Está seguro?",
-				text: "¡No podrá revertir esta acción!",
-				icon: "warning",
-				showCancelButton: true,
-				confirmButtonColor: "#3085d6",
-				cancelButtonColor: "#d33",
-				confirmButtonText: "¡Sí, eliminar!",
-				cancelButtonText: 'Cancelar'
-			}).then((result) => {
-				if (result.isConfirmed) {
-					$wire.destroy(id)
-					Swal.fire({
-						title: "¡Eliminado!",
-						text: "Registro eliminado con éxito",
-						icon: "success"
-					});
-				}
-			});
+	<x-dialog-modal name="modal-void-sale" maxWidth="lg">
+		<x-slot name="title">Anular venta</x-slot>
 
-		});
-	</script>
-	@endscript
+		<x-slot name="content">
+			<p class="mb-4 text-sm text-gray-600">
+				La venta y sus pagos se conservarán. El sistema generará contramovimientos de inventario y caja.
+			</p>
+			<x-input-label for="voidReason" value="Motivo obligatorio" />
+			<x-textarea id="voidReason" wire:model="voidReason" rows="4" class="mt-1 block w-full" />
+			<x-input-error :messages="$errors->get('voidReason')" class="mt-2" />
+		</x-slot>
+
+		<x-slot name="footer">
+			<x-secondary-button type="button" wire:click="$dispatch('close-modal', 'modal-void-sale')">
+				Cancelar
+			</x-secondary-button>
+			<x-danger-button type="button" class="ms-3" wire:click="voidSale" wire:loading.attr="disabled" wire:target="voidSale">
+				Confirmar anulación
+			</x-danger-button>
+		</x-slot>
+	</x-dialog-modal>
 
 </div>

@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ImmutableFinancialRecord;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
     use HasFactory;
+    use ImmutableFinancialRecord;
 
     protected $fillable = ['sale_id', 'amount', 'payment_date', 'payment_method_id'];
 
