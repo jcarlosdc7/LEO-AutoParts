@@ -17,9 +17,13 @@ class UsersPanel extends Component
     use WithPagination;
 
     public User $user;
+
     public $roles;
+
     public bool $isEditing = false;
+
     public string $password = '';
+
     public string $password_confirmation = '';
 
     public function mount(): void
@@ -32,6 +36,7 @@ class UsersPanel extends Component
     public function render()
     {
         $this->ensureAdmin();
+
         return view('livewire.lwUsers.users-panel', [
             'users' => User::with('role')->orderBy('name')->paginate(10, pageName: 'pageUser'),
         ]);
@@ -71,8 +76,9 @@ class UsersPanel extends Component
         ];
         $this->validate($rules);
 
-        if ($this->user->exists && $this->user->is(Auth::user()) && !$this->user->is_active) {
+        if ($this->user->exists && $this->user->is(Auth::user()) && ! $this->user->is_active) {
             $this->addError('user.is_active', 'No puede desactivar su propia cuenta.');
+
             return;
         }
 

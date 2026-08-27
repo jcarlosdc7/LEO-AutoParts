@@ -15,11 +15,17 @@ use Livewire\Component;
 class CashPanel extends Component
 {
     public $openingAmount = 0;
+
     public $closingAmount;
+
     public $openingNotes = '';
+
     public $closingNotes = '';
+
     public $movementType = 'income';
+
     public $movementAmount;
+
     public $movementReason = '';
 
     public function mount(): void
@@ -110,6 +116,7 @@ class CashPanel extends Component
     public function render()
     {
         $session = $this->currentSession();
+
         return view('livewire.lwCash.cash-panel', [
             'session' => $session,
             'movements' => $session?->movements()->latest()->limit(20)->get() ?? collect(),

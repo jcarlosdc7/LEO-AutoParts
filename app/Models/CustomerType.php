@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class CustomerType extends Model
 {
-	use HasFactory;
+    use HasFactory;
 
-	protected $fillable = ['name', 'description'];
+    protected $fillable = ['name', 'description'];
 
-	public function customers()
-	{
-		return $this->hasMany(Customer::class);
-	}
+    public function customers()
+    {
+        return $this->hasMany(Customer::class);
+    }
 }

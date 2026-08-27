@@ -17,7 +17,7 @@ class SaleService
 {
     public function create(array $cart, int $customerId, int $paymentMethodId, ?float $receivedAmount, User $user): Sale
     {
-        if (!$user->hasAnyRole(['Administrador', 'Vendedor'])) {
+        if (! $user->hasAnyRole(['Administrador', 'Vendedor'])) {
             abort(403, 'No tiene permiso para registrar ventas.');
         }
 
@@ -33,15 +33,16 @@ class SaleService
                 ->latest('opened_at')
                 ->first();
 
-            if (!$session) {
+            if (! $session) {
                 throw ValidationException::withMessages(['cash' => 'Debe abrir una caja antes de registrar ventas.']);
             }
 
             $normalized = collect($cart)->map(function (array $item) {
                 $quantity = filter_var($item['quantity'] ?? null, FILTER_VALIDATE_INT);
-                if (!$quantity || $quantity < 1) {
+                if (! $quantity || $quantity < 1) {
                     throw ValidationException::withMessages(['invoice' => 'Las cantidades deben ser números enteros positivos.']);
                 }
+
                 return ['id' => (int) ($item['id'] ?? 0), 'quantity' => $quantity];
             })->groupBy('id')->map(fn ($items) => $items->sum('quantity'));
 

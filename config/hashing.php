@@ -15,7 +15,7 @@ return [
     |
     */
 
-    //'driver' => env('HASH_DRIVER', 'md5'), // PARA USAR MD5
+    // 'driver' => env('HASH_DRIVER', 'md5'), // PARA USAR MD5
     'driver' => env('HASH_DRIVER', 'bcrypt'),
 
     /*

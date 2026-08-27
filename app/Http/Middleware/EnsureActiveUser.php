@@ -10,10 +10,11 @@ class EnsureActiveUser
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->user() && !$request->user()->is_active) {
+        if ($request->user() && ! $request->user()->is_active) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
+
             return redirect()->route('login')->withErrors(['email' => 'La cuenta está inactiva.']);
         }
 

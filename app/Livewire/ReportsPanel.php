@@ -10,86 +10,100 @@ use App\Exports\StockExport;
 use App\Exports\UsersExport;
 use App\Models\Category;
 use Livewire\Component;
-use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Excel as ExcelWriter;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ReportsPanel extends Component
 {
-	public $categories;
+    public $categories;
 
-	public $selectedCategory;
-	
-	public function mount() 
-	{
-		$this->categories = Category::all();
-	}
+    public $selectedCategory;
 
-	public function render()
-	{
-		return view('livewire.lwReports.reports-panel');
-	}
+    public function mount()
+    {
+        $this->categories = Category::all();
+    }
 
-	// REPORTE DE VENTAS
-	public function reportSalesEXCEL() {
-		return Excel::download(new SalesExport, 'sales.xlsx');
-	}
+    public function render()
+    {
+        return view('livewire.lwReports.reports-panel');
+    }
 
-	public function reportSalesPDF() {
-		return Excel::download(new SalesExport, 'sales.pdf', ExcelWriter::DOMPDF);
-	}
+    // REPORTE DE VENTAS
+    public function reportSalesEXCEL()
+    {
+        return Excel::download(new SalesExport, 'sales.xlsx');
+    }
 
-	// REPORTE DE PRODUCTOS
-	public function reportProductsEXCEL() {
-		if($this->selectedCategory === null) {
-			$this->selectedCategory = 0;
-		}
-		return Excel::download(new ProductsExport($this->selectedCategory), 'products.xlsx');
+    public function reportSalesPDF()
+    {
+        return Excel::download(new SalesExport, 'sales.pdf', ExcelWriter::DOMPDF);
+    }
 
-		$this->dispatch('close-modal', 'modal-form-paramProductsEXCEL');
-	}
+    // REPORTE DE PRODUCTOS
+    public function reportProductsEXCEL()
+    {
+        if ($this->selectedCategory === null) {
+            $this->selectedCategory = 0;
+        }
 
-	public function reportProductsPDF() {
-		if($this->selectedCategory === null) {
-			$this->selectedCategory = 0;
-		}
-		return Excel::download(new ProductsExport($this->selectedCategory), 'products.pdf', ExcelWriter::DOMPDF);
-		
-		$this->dispatch('close-modal', 'modal-form-paramProductsPDF');
-	}
+        return Excel::download(new ProductsExport($this->selectedCategory), 'products.xlsx');
 
-	// REPORTE DE CLIENTES
-	public function reportCustomersEXCEL() {
-		return Excel::download(new CustomersExport, 'customers.xlsx');
-	}
+        $this->dispatch('close-modal', 'modal-form-paramProductsEXCEL');
+    }
 
-	public function reportCustomersPDF() {
-		return Excel::download(new CustomersExport, 'customers.pdf', ExcelWriter::DOMPDF);
-	}
+    public function reportProductsPDF()
+    {
+        if ($this->selectedCategory === null) {
+            $this->selectedCategory = 0;
+        }
 
-	// REPORTE DE USUARIOS
-	public function reportUsersEXCEL() {
-		return Excel::download(new UsersExport, 'users.xlsx');
-	}
+        return Excel::download(new ProductsExport($this->selectedCategory), 'products.pdf', ExcelWriter::DOMPDF);
 
-	public function reportUsersPDF() {
-		return Excel::download(new UsersExport, 'users.pdf', ExcelWriter::DOMPDF);
-	}
+        $this->dispatch('close-modal', 'modal-form-paramProductsPDF');
+    }
 
-	// REPORTE DE PAGOS
-	public function reportPaymentsEXCEL() {
-		return Excel::download(new PaymentsExport, 'payments.xlsx');
-	}
+    // REPORTE DE CLIENTES
+    public function reportCustomersEXCEL()
+    {
+        return Excel::download(new CustomersExport, 'customers.xlsx');
+    }
 
-	public function reportPaymentsPDF() {
-		return Excel::download(new PaymentsExport, 'payments.pdf', ExcelWriter::DOMPDF);
-	}
+    public function reportCustomersPDF()
+    {
+        return Excel::download(new CustomersExport, 'customers.pdf', ExcelWriter::DOMPDF);
+    }
 
-	// REPORTE DE STOCK
-	public function reportStockEXCEL() {
-		return Excel::download(new StockExport, 'stock.xlsx');
-	}
+    // REPORTE DE USUARIOS
+    public function reportUsersEXCEL()
+    {
+        return Excel::download(new UsersExport, 'users.xlsx');
+    }
 
-	public function reportStockPDF() {
-		return Excel::download(new StockExport, 'stock.pdf', ExcelWriter::DOMPDF);
-	}
+    public function reportUsersPDF()
+    {
+        return Excel::download(new UsersExport, 'users.pdf', ExcelWriter::DOMPDF);
+    }
+
+    // REPORTE DE PAGOS
+    public function reportPaymentsEXCEL()
+    {
+        return Excel::download(new PaymentsExport, 'payments.xlsx');
+    }
+
+    public function reportPaymentsPDF()
+    {
+        return Excel::download(new PaymentsExport, 'payments.pdf', ExcelWriter::DOMPDF);
+    }
+
+    // REPORTE DE STOCK
+    public function reportStockEXCEL()
+    {
+        return Excel::download(new StockExport, 'stock.xlsx');
+    }
+
+    public function reportStockPDF()
+    {
+        return Excel::download(new StockExport, 'stock.pdf', ExcelWriter::DOMPDF);
+    }
 }

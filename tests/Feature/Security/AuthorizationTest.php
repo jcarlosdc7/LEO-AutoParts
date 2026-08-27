@@ -9,6 +9,7 @@ uses(RefreshDatabase::class);
 function userWithRole(string $role): User
 {
     $model = Role::firstOrCreate(['name' => $role]);
+
     return User::factory()->create(['role_id' => $model->id, 'is_active' => true]);
 }
 

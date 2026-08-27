@@ -11,13 +11,13 @@ class RoleMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
         $user = $request->user();
 
-        if (!$user || !$user->is_active || !$user->role || !in_array($user->role->name, $roles, true)) {
+        if (! $user || ! $user->is_active || ! $user->role || ! in_array($user->role->name, $roles, true)) {
             abort(403, 'ACCESO DENEGADO');
         }
 

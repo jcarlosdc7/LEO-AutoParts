@@ -5,97 +5,100 @@ namespace App\Livewire;
 use App\Models\Supplier;
 use Livewire\Component;
 use Livewire\WithPagination;
-use phpDocumentor\Reflection\Types\This;
 
 class SuppliersPanel extends Component
 {
-	protected $listeners = ['confirmado' => 'confirmadoAccionar'];
-	use WithPagination;
+    protected $listeners = ['confirmado' => 'confirmadoAccionar'];
 
-	public Supplier $supplier;
+    use WithPagination;
 
-	//public $suppliers;
-	public $idForDeleting = null;
+    public Supplier $supplier;
 
-	public $modal = false;
-	public $isEditing = false;
+    // public $suppliers;
+    public $idForDeleting = null;
 
-	// ========================== VALIDACION ==========================
-	protected $rules = [
-		'supplier.name' => 'required|string|max:255',
-		'supplier.contact' => 'required|string|max:255',
-		'supplier.phone' => 'required|string|max:15',
-		'supplier.address' => 'required|string|max:255',
-	];
+    public $modal = false;
 
-	protected $validationAttributes = [
-		'supplier.name' => 'Nombre',
-		'supplier.contact' => 'Contacto',
-		'supplier.phone' => 'Teléfono',
-		'supplier.address' => 'Dirección',
-	];
+    public $isEditing = false;
 
-	public function mount()
-	{
-		$this->supplier = new Supplier();
+    // ========================== VALIDACION ==========================
+    protected $rules = [
+        'supplier.name' => 'required|string|max:255',
+        'supplier.contact' => 'required|string|max:255',
+        'supplier.phone' => 'required|string|max:15',
+        'supplier.address' => 'required|string|max:255',
+    ];
 
-		//$this->suppliers = Supplier::All();
-	}
+    protected $validationAttributes = [
+        'supplier.name' => 'Nombre',
+        'supplier.contact' => 'Contacto',
+        'supplier.phone' => 'Teléfono',
+        'supplier.address' => 'Dirección',
+    ];
 
-	public function render()
-	{
-		$suppliers = Supplier::where('is_active', true)->paginate(10, pageName: 'pageSupplier');
-		
-		// EN CASO DE QUE LA ULTIMA PAGINA SE QUEDE SIN REGISTROS PARA RENDERIZAR
-		if($suppliers->count() === 0) {
-			$this->previousPage(pageName: 'pageSupplier');
-			$suppliers = Supplier::where('is_active', true)->paginate(10, pageName: 'pageSupplier');
-		}
+    public function mount()
+    {
+        $this->supplier = new Supplier;
 
-		return view('livewire.lwSuppliers.suppliers-panel', compact('suppliers'));
-	}
+        // $this->suppliers = Supplier::All();
+    }
 
-	// ========================== CRUD ==========================
-	public function create() {
-		$this->resetValidation();
-		$this->dispatch('open-modal', 'modal-form-supplier');
-	}
+    public function render()
+    {
+        $suppliers = Supplier::where('is_active', true)->paginate(10, pageName: 'pageSupplier');
 
-	public function update($id)
-	{
-		$this->isEditing = true;
-		$this->supplier = Supplier::find($id);
+        // EN CASO DE QUE LA ULTIMA PAGINA SE QUEDE SIN REGISTROS PARA RENDERIZAR
+        if ($suppliers->count() === 0) {
+            $this->previousPage(pageName: 'pageSupplier');
+            $suppliers = Supplier::where('is_active', true)->paginate(10, pageName: 'pageSupplier');
+        }
 
-		$this->resetValidation();
-		$this->dispatch('open-modal', 'modal-form-supplier');
-	}
+        return view('livewire.lwSuppliers.suppliers-panel', compact('suppliers'));
+    }
 
-	// public function destroyConfirmation($id) {
-	// 	$this->idForDeleting = $id;
-	// 	$this->dispatch('deleteSupplier', supplierId : $id);
-	// }
+    // ========================== CRUD ==========================
+    public function create()
+    {
+        $this->resetValidation();
+        $this->dispatch('open-modal', 'modal-form-supplier');
+    }
 
-	public function confirmadoAccionar($data) {
-		dd('CONFIRMADO' , $data );
-	}
+    public function update($id)
+    {
+        $this->isEditing = true;
+        $this->supplier = Supplier::find($id);
 
-	public function destroy($id)
-	{
-		
-		Supplier::findOrFail($id)->update(['is_active' => false]);
-		//$this->suppliers = Supplier::all();
-	}
+        $this->resetValidation();
+        $this->dispatch('open-modal', 'modal-form-supplier');
+    }
 
-	public function save() 
-	{
-		$this->validate();
-		$this->supplier->save();
+    // public function destroyConfirmation($id) {
+    // 	$this->idForDeleting = $id;
+    // 	$this->dispatch('deleteSupplier', supplierId : $id);
+    // }
 
-		$this->resetPage(pageName: 'pageSupplier');
-		$this->dispatch('close-modal', 'modal-form-supplier');
+    public function confirmadoAccionar($data)
+    {
+        dd('CONFIRMADO', $data);
+    }
 
-		//$this->suppliers = Supplier::all();
-		$this->supplier = new Supplier();
-		$this->isEditing = false;
-	}
+    public function destroy($id)
+    {
+
+        Supplier::findOrFail($id)->update(['is_active' => false]);
+        // $this->suppliers = Supplier::all();
+    }
+
+    public function save()
+    {
+        $this->validate();
+        $this->supplier->save();
+
+        $this->resetPage(pageName: 'pageSupplier');
+        $this->dispatch('close-modal', 'modal-form-supplier');
+
+        // $this->suppliers = Supplier::all();
+        $this->supplier = new Supplier;
+        $this->isEditing = false;
+    }
 }

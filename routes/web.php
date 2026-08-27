@@ -24,19 +24,19 @@ Route::middleware(['auth', 'verified', EnsureActiveUser::class])->group(function
     Route::get('invoices/{sale}/download', [InvoiceController::class, 'download'])
         ->name('invoices.download');
 
-    Route::middleware(RoleMiddleware::class . ':Administrador')->group(function () {
+    Route::middleware(RoleMiddleware::class.':Administrador')->group(function () {
         Route::get('users', UsersPanel::class)->name('users')->lazy();
         Route::get('configuration', ConfigurationPanel::class)->name('configuration')->lazy();
     });
 
-    Route::middleware(RoleMiddleware::class . ':Administrador,Contador')->group(function () {
+    Route::middleware(RoleMiddleware::class.':Administrador,Contador')->group(function () {
         Route::get('reports', ReportsPanel::class)->name('reports')->lazy();
         Route::get('inventory', InventoryPanel::class)->name('inventory')->lazy();
         Route::get('salesHistory', SalesHistoryPanel::class)->name('salesHistory')->lazy();
         Route::get('suppliers', SuppliersPanel::class)->name('suppliers')->lazy();
     });
 
-    Route::middleware(RoleMiddleware::class . ':Administrador,Vendedor')->group(function () {
+    Route::middleware(RoleMiddleware::class.':Administrador,Vendedor')->group(function () {
         Route::get('cash', CashPanel::class)->name('cash')->lazy();
         Route::get('customers', CustomersPanel::class)->name('customers')->lazy();
         Route::get('invoicing', InvoicingPanel::class)->name('invoicing')->lazy();

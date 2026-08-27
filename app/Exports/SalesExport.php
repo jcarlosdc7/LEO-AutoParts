@@ -3,18 +3,19 @@
 namespace App\Exports;
 
 use App\Models\Sale;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithCustomStartCell;
-use Maatwebsite\Excel\Concerns\WithEvents;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class SalesExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithCustomStartCell, WithEvents, ShouldAutoSize
+class SalesExport implements FromCollection, ShouldAutoSize, WithCustomStartCell, WithEvents, WithHeadings, WithMapping, WithStyles
 {
     public function collection()
     {
@@ -53,16 +54,15 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
             $sale->change,
             $this->formatDate($sale->sale_date),
             $sale->paymentMethod->name,
-            '', 
-            '', 
-            '', 
-            '', 
+            '',
+            '',
+            '',
+            '',
         ];
 
         // Detalles de la venta
         foreach ($sale->saleDetails as $detail) {
             $rows[] = [
-                '', 
                 '',
                 '',
                 '',
@@ -70,9 +70,10 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
                 '',
                 '',
                 '',
-                $detail->product->name, 
-                $detail->quantity, 
-                $detail->price, 
+                '',
+                $detail->product->name,
+                $detail->quantity,
+                $detail->price,
                 $detail->quantity * $detail->price,
             ];
         }
@@ -82,7 +83,7 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, WithStyl
 
     private function formatDate($date)
     {
-        return \Carbon\Carbon::parse($date)->format('d-m-Y H:i:s');
+        return Carbon::parse($date)->format('d-m-Y H:i:s');
     }
 
     public function styles(Worksheet $sheet)

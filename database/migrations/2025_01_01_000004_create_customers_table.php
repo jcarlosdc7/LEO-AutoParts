@@ -6,31 +6,31 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-	/**
-	 * Run the migrations.
-	 */
-	public function up(): void
-	{
-		Schema::create('customers', function (Blueprint $table) {
-			$table->id();
-			
-			$table->string('dni_ruc')->unique();
-			$table->string('name');
-			$table->string('email')->unique()->nullable();
-			$table->string('phone')->nullable();
-			$table->string('address');
-			$table->string('city');
-			$table->foreignId('customer_type_id')->nullable()->constrained()->onDelete('set null');
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('customers', function (Blueprint $table) {
+            $table->id();
 
-			$table->timestamps();
-		});
-	}
+            $table->string('dni_ruc')->unique();
+            $table->string('name');
+            $table->string('email')->unique()->nullable();
+            $table->string('phone')->nullable();
+            $table->string('address');
+            $table->string('city');
+            $table->foreignId('customer_type_id')->nullable()->constrained()->onDelete('set null');
 
-	/**
-	 * Reverse the migrations.
-	 */
-	public function down(): void
-	{
-		Schema::dropIfExists('customers');
-	}
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('customers');
+    }
 };

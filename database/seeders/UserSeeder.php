@@ -13,7 +13,7 @@ class UserSeeder extends Seeder
     {
         $password = env('SEED_DEFAULT_PASSWORD');
 
-        if (!$password && !app()->environment('testing')) {
+        if (! $password && ! app()->environment('testing')) {
             throw new RuntimeException('Defina SEED_DEFAULT_PASSWORD antes de crear usuarios iniciales.');
         }
 

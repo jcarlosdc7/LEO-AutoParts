@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\EnsureActiveUser;
+use App\Http\Middleware\RoleMiddleware;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 

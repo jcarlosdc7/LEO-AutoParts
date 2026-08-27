@@ -7,14 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Supplier extends Model
 {
-	use HasFactory;
+    use HasFactory;
 
-	protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean'];
 
-	protected $fillable = ['name', 'contact', 'phone', 'address', 'is_active'];
+    protected $fillable = ['name', 'contact', 'phone', 'address', 'is_active'];
 
-	public function products()
-	{
-		return $this->hasMany(Product::class);
-	}
+    public function products()
+    {
+        return $this->hasMany(Product::class);
+    }
 }

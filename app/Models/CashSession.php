@@ -18,8 +18,23 @@ class CashSession extends Model
         'opened_at' => 'datetime', 'closed_at' => 'datetime',
     ];
 
-    public function register() { return $this->belongsTo(CashRegister::class, 'cash_register_id'); }
-    public function user() { return $this->belongsTo(User::class); }
-    public function sales() { return $this->hasMany(Sale::class); }
-    public function movements() { return $this->hasMany(CashMovement::class); }
+    public function register()
+    {
+        return $this->belongsTo(CashRegister::class, 'cash_register_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    public function movements()
+    {
+        return $this->hasMany(CashMovement::class);
+    }
 }
