@@ -77,10 +77,7 @@ class SuppliersPanel extends Component
     // 	$this->dispatch('deleteSupplier', supplierId : $id);
     // }
 
-    public function confirmadoAccionar($data)
-    {
-        dd('CONFIRMADO', $data);
-    }
+    public function confirmadoAccionar($data) {}
 
     public function destroy($id)
     {
