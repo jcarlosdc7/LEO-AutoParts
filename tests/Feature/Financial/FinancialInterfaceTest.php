@@ -20,7 +20,8 @@ test('financial workspace renders its accounting surfaces for an administrator',
 
     Livewire::actingAs($admin)->test(CashPanel::class)
         ->assertSee('Caja y arqueo')
-        ->assertSee('Apertura de caja');
+        ->assertSee('CAJA CERRADA')
+        ->assertSee('ABRIR CAJA');
 
     Livewire::actingAs($admin)->test(InvoicingPanel::class)
         ->assertSee('Panel de control: Facturación')
