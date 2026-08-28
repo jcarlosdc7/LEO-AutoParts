@@ -15,11 +15,14 @@ use Illuminate\Validation\ValidationException;
 
 class SaleService
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly CashService $cash,
+    ) {}
 
     public function create(array $cart, int $customerId, int $paymentMethodId, ?float $receivedAmount, User $user): Sale
     {
-        if (! $user->hasAnyRole(['Administrador', 'Vendedor'])) {
+        if (! $user->is_active || ! $user->hasAnyRole(['Administrador', 'Vendedor'])) {
             abort(403, 'No tiene permiso para registrar ventas.');
         }
 
@@ -71,12 +74,7 @@ class SaleService
                 ]);
             }
 
-            $session = CashSession::query()
-                ->where('user_id', $user->id)
-                ->where('status', 'open')
-                ->lockForUpdate()
-                ->latest('opened_at')
-                ->first();
+            $session = $this->cash->activeSessionFor($user, lock: true);
 
             if (! $session) {
                 throw ValidationException::withMessages(['cash' => 'Debe abrir una caja antes de registrar ventas.']);

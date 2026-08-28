@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\CashMovement;
-use App\Models\CashSession;
 use App\Models\CreditNote;
 use App\Models\CreditNoteItem;
 use App\Models\PaymentMethod;
@@ -20,7 +19,10 @@ use Illuminate\Validation\ValidationException;
 
 class ReturnService
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly CashService $cash,
+    ) {}
 
     public function process(int|Sale $sale, array $items, int $refundMethodId, string $reason, User $actor, string $operationId, ?string $reference = null): SaleReturn
     {
@@ -119,11 +121,11 @@ class ReturnService
 
             $cashSession = null;
             if ($paymentMethod->affects_cash_drawer) {
-                $cashSession = CashSession::query()->where('user_id', $actor->id)->where('status', 'open')->lockForUpdate()->first();
+                $cashSession = $this->cash->activeSessionFor($actor, lock: true);
                 if (! $cashSession) {
                     throw ValidationException::withMessages(['refundMethod' => 'Se requiere una caja activa para reembolsar efectivo.']);
                 }
-                if (bccomp($this->availableCash($cashSession), $total, 2) < 0) {
+                if (bccomp($this->cash->expectedCash($cashSession), $total, 2) < 0) {
                     throw ValidationException::withMessages(['refundMethod' => 'La caja no dispone de efectivo suficiente para el reembolso.']);
                 }
             }
@@ -222,14 +224,6 @@ class ReturnService
     private function authorize(User $actor): void
     {
         abort_unless($actor->is_active && $actor->hasRole('Administrador'), 403, 'Solo un administrador activo puede procesar devoluciones.');
-    }
-
-    private function availableCash(CashSession $session): string
-    {
-        $income = (string) $session->movements()->whereIn('type', ['sale', 'income'])->sum('amount');
-        $outflow = (string) $session->movements()->whereIn('type', ['expense', 'withdrawal', 'refund'])->sum('amount');
-
-        return bcsub(bcadd((string) $session->opening_amount, $income, 2), $outflow, 2);
     }
 
     private function nextNumber(string $table, string $prefix): string
