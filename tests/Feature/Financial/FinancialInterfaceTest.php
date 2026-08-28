@@ -44,7 +44,7 @@ test('financial routes load inside the responsive accounting shell', function ()
     foreach (['dashboard', 'cash', 'invoicing', 'salesHistory', 'reports'] as $route) {
         $this->actingAs($admin)->get(route($route))
             ->assertOk()
-            ->assertSee('Centro de control')
-            ->assertSee('Control financiero');
+            ->assertSee('Main Menu')
+            ->assertSee('Dashboard');
     }
 });
