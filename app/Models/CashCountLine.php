@@ -9,7 +9,7 @@ class CashCountLine extends Model
 {
     use ImmutableFinancialRecord;
 
-    protected $fillable = ['cash_count_id', 'cash_denomination_id', 'quantity', 'subtotal'];
+    protected $guarded = ['*'];
 
     protected $casts = ['quantity' => 'integer', 'subtotal' => 'decimal:2'];
 

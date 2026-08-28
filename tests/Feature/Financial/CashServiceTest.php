@@ -10,6 +10,7 @@ use App\Models\CashSession;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CashService;
+use Illuminate\Database\Eloquent\MassAssignmentException;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -70,7 +71,7 @@ test('authorized user opens a register atomically with an exact immutable denomi
         ->and($session->openingCount->lines->sum('quantity'))->toBe(6)
         ->and(AuditLog::where('event', 'cash.opened')->count())->toBe(1);
 
-    expect(fn () => $session->openingCount->lines->first()->update(['quantity' => 99]))
+    expect(fn () => $session->openingCount->lines->first()->forceFill(['quantity' => 99])->save())
         ->toThrow(LogicException::class);
 });
 
@@ -134,7 +135,49 @@ test('session ownership prevents IDOR and historical mutations', function () {
 
     expect(fn () => app(CashService::class)->recordMovement($session->id, 'income', '10.00', 'Intento sobre sesión ajena.', null, $intruder, (string) Str::uuid()))
         ->toThrow(HttpException::class)
+        ->and(fn () => app(CashService::class)->close($session->id, denominationCounts(['50.00' => 1]), null, $intruder, (string) Str::uuid()))
+        ->toThrow(HttpException::class)
         ->and(CashMovement::count())->toBe(0);
+});
+
+test('inactive users cannot move or close an existing cash session', function () {
+    $actor = cashActor('Vendedor');
+    $register = cashRegister('INACTIVE-OPS');
+    $service = app(CashService::class);
+    $session = $service->open($register->code, denominationCounts(['50.00' => 1]), null, $actor, (string) Str::uuid());
+    $actor->forceFill(['is_active' => false])->save();
+
+    expect(fn () => $service->recordMovement($session->id, 'income', '10.00', 'Intento con usuario inactivo.', null, $actor, (string) Str::uuid()))
+        ->toThrow(HttpException::class)
+        ->and(fn () => $service->close($session->id, denominationCounts(['50.00' => 1]), null, $actor, (string) Str::uuid()))
+        ->toThrow(HttpException::class)
+        ->and($session->fresh()->status)->toBe('open')
+        ->and(CashMovement::count())->toBe(0);
+});
+
+test('cash financial models reject mass assignment of protected fields', function () {
+    $actor = cashActor();
+    $register = cashRegister('MASS-ASSIGNMENT');
+
+    expect(fn () => CashSession::create([
+        'cash_register_id' => $register->id,
+        'user_id' => $actor->id,
+        'opening_amount' => '999999.99',
+        'status' => 'closed',
+        'closed_by' => $actor->id,
+    ]))->toThrow(MassAssignmentException::class)
+        ->and(fn () => CashMovement::create([
+            'cash_session_id' => 999999,
+            'user_id' => $actor->id,
+            'type' => 'income',
+            'amount' => '999999.99',
+        ]))->toThrow(MassAssignmentException::class)
+        ->and(fn () => CashCount::create([
+            'cash_session_id' => 999999,
+            'operation_id' => (string) Str::uuid(),
+            'type' => 'CLOSING',
+            'total' => '999999.99',
+        ]))->toThrow(MassAssignmentException::class);
 });
 
 test('blind closing records exact reconciliation and resists duplicate closure', function () {
@@ -158,7 +201,7 @@ test('blind closing records exact reconciliation and resists duplicate closure',
         ->and(CashCount::where('type', 'CLOSING')->count())->toBe(1)
         ->and(AuditLog::where('event', 'cash.closed')->count())->toBe(1);
 
-    expect(fn () => $closed->update(['difference' => '1.00']))
+    expect(fn () => $closed->forceFill(['difference' => '1.00'])->save())
         ->toThrow(LogicException::class)
         ->and(fn () => $closed->delete())
         ->toThrow(LogicException::class);
@@ -233,7 +276,9 @@ test('cash livewire makes the next action obvious and opens from denomination in
     $component = Livewire::actingAs($actor)->test(CashPanel::class)
         ->set('registerCode', $register->code)
         ->assertSee('CAJA CERRADA')
-        ->assertSee('ABRIR CAJA');
+        ->assertSee('ABRIR CAJA')
+        ->assertSeeHtml('role="dialog"')
+        ->assertSeeHtml('aria-modal="true"');
 
     foreach ($counts as $denominationId => $quantity) {
         $component->set("openingCounts.{$denominationId}", $quantity);

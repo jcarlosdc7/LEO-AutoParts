@@ -34,7 +34,7 @@ function concurrentReturnFixture(): array
     $vendor = User::factory()->create(['role_id' => $vendorRole->id, 'is_active' => true]);
     $admin = User::factory()->create(['role_id' => $adminRole->id, 'is_active' => true]);
     $register = CashRegister::create(['name' => 'Caja concurrencia', 'code' => 'CON-01', 'is_active' => true]);
-    CashSession::create([
+    CashSession::forceCreate([
         'cash_register_id' => $register->id,
         'user_id' => $vendor->id,
         'opening_amount' => '100.00',

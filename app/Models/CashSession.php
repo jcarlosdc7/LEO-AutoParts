@@ -7,12 +7,7 @@ use LogicException;
 
 class CashSession extends Model
 {
-    protected $fillable = [
-        'cash_register_id', 'user_id', 'opening_operation_id', 'closing_operation_id',
-        'opening_amount', 'expected_amount',
-        'closing_amount', 'difference', 'status', 'opening_notes',
-        'closing_notes', 'opened_at', 'closed_at', 'closed_by',
-    ];
+    protected $guarded = ['*'];
 
     protected $casts = [
         'opening_amount' => 'decimal:2', 'expected_amount' => 'decimal:2',

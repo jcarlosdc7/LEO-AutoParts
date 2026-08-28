@@ -30,7 +30,7 @@ function inventoryRaceFixture(string $suffix, int $stock): array
     $vendor = User::factory()->create(['role_id' => $vendorRole->id, 'is_active' => true]);
     $admin = User::factory()->create(['role_id' => $adminRole->id, 'is_active' => true]);
     $register = CashRegister::create(['name' => 'Caja '.$suffix, 'code' => 'RACE-'.$suffix, 'is_active' => true]);
-    CashSession::create([
+    CashSession::forceCreate([
         'cash_register_id' => $register->id,
         'user_id' => $vendor->id,
         'opening_amount' => '1000.00',

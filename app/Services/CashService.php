@@ -54,7 +54,7 @@ class CashService
             }
 
             [$total, $lines] = $this->calculateCount($register->currency_code, $quantities);
-            $session = CashSession::create([
+            $session = CashSession::forceCreate([
                 'cash_register_id' => $register->id,
                 'user_id' => $actor->id,
                 'opening_operation_id' => $operationId,
@@ -129,7 +129,7 @@ class CashService
                 throw ValidationException::withMessages(['movementAmount' => 'No existe suficiente efectivo para realizar este movimiento.']);
             }
 
-            $movement = CashMovement::create([
+            $movement = CashMovement::forceCreate([
                 'cash_session_id' => $session->id,
                 'user_id' => $actor->id,
                 'operation_id' => $operationId,
@@ -212,7 +212,7 @@ class CashService
             );
 
             $before = $session->getAttributes();
-            $session->update([
+            $session->forceFill([
                 'closing_operation_id' => $operationId,
                 'expected_amount' => $expected,
                 'closing_amount' => $counted,
@@ -221,7 +221,7 @@ class CashService
                 'status' => 'closed',
                 'closed_at' => now(),
                 'closed_by' => $actor->id,
-            ]);
+            ])->save();
 
             $audit = [
                 'cash_register_id' => $session->cash_register_id,
@@ -316,7 +316,7 @@ class CashService
         ?string $difference = null,
         ?string $differenceReason = null,
     ): CashCount {
-        $count = CashCount::create([
+        $count = CashCount::forceCreate([
             'cash_session_id' => $session->id,
             'operation_id' => $operationId,
             'type' => $type,
@@ -328,7 +328,7 @@ class CashService
             'performed_at' => now(),
         ]);
         foreach ($lines as $line) {
-            CashCountLine::create(['cash_count_id' => $count->id] + $line);
+            CashCountLine::forceCreate(['cash_count_id' => $count->id] + $line);
         }
 
         return $count;

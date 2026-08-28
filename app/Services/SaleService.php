@@ -131,7 +131,7 @@ class SaleService
             ]);
 
             if ($session && $paymentMethod->affects_cash_drawer) {
-                CashMovement::create([
+                CashMovement::forceCreate([
                     'cash_session_id' => $session->id,
                     'user_id' => $user->id,
                     'type' => 'sale',
@@ -218,7 +218,7 @@ class SaleService
             }
 
             if ($cashMovement && $cashSession) {
-                CashMovement::create([
+                CashMovement::forceCreate([
                     'cash_session_id' => $cashSession->id,
                     'user_id' => $actor->id,
                     'type' => 'refund',

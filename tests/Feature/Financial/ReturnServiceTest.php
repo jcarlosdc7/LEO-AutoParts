@@ -36,10 +36,10 @@ function returnFixture(bool $adminCash = true, string $adminOpening = '1000.00')
     $vendor = User::factory()->create(['role_id' => $vendorRole->id, 'is_active' => true]);
     $admin = User::factory()->create(['role_id' => $adminRole->id, 'is_active' => true]);
     $register = CashRegister::create(['name' => 'Caja devolución', 'code' => 'RET-01', 'is_active' => true]);
-    CashSession::create(['cash_register_id' => $register->id, 'user_id' => $vendor->id, 'opening_amount' => 100, 'status' => 'open', 'opened_at' => now()]);
+    CashSession::forceCreate(['cash_register_id' => $register->id, 'user_id' => $vendor->id, 'opening_amount' => 100, 'status' => 'open', 'opened_at' => now()]);
     if ($adminCash) {
         $adminRegister = CashRegister::create(['name' => 'Caja devolución administrativa', 'code' => 'RET-ADMIN', 'is_active' => true]);
-        CashSession::create(['cash_register_id' => $adminRegister->id, 'user_id' => $admin->id, 'opening_amount' => $adminOpening, 'status' => 'open', 'opened_at' => now()]);
+        CashSession::forceCreate(['cash_register_id' => $adminRegister->id, 'user_id' => $admin->id, 'opening_amount' => $adminOpening, 'status' => 'open', 'opened_at' => now()]);
     }
     $customerType = CustomerType::create(['name' => 'General']);
     $customer = Customer::create(['dni_ruc' => 'RET-001', 'name' => 'Cliente', 'address' => 'Managua', 'city' => 'Managua', 'customer_type_id' => $customerType->id, 'is_active' => true]);

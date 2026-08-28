@@ -171,7 +171,7 @@ class ReturnService
                 'reference' => $reference, 'status' => 'completed', 'processed_by' => $actor->id, 'processed_at' => now(),
             ]);
             if ($cashSession) {
-                CashMovement::create([
+                CashMovement::forceCreate([
                     'cash_session_id' => $cashSession->id, 'user_id' => $actor->id, 'type' => 'refund', 'amount' => $total,
                     'reason' => "Devolución {$saleReturn->return_number}", 'notes' => $reason,
                     'reference_type' => Refund::class, 'reference_id' => $refund->id,

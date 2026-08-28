@@ -9,10 +9,7 @@ class CashCount extends Model
 {
     use ImmutableFinancialRecord;
 
-    protected $fillable = [
-        'cash_session_id', 'operation_id', 'type', 'total', 'expected_amount',
-        'difference', 'difference_reason', 'performed_by', 'performed_at',
-    ];
+    protected $guarded = ['*'];
 
     protected $casts = [
         'total' => 'decimal:2', 'expected_amount' => 'decimal:2',

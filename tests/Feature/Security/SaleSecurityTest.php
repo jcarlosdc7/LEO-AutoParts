@@ -29,7 +29,7 @@ function saleFixture(bool $openCash = true): array
     $user = User::factory()->create(['role_id' => $role->id, 'is_active' => true]);
     $register = CashRegister::create(['name' => 'Caja prueba', 'code' => 'TEST-01', 'is_active' => true]);
     if ($openCash) {
-        CashSession::create([
+        CashSession::forceCreate([
             'cash_register_id' => $register->id,
             'user_id' => $user->id,
             'opening_amount' => 50,
