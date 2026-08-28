@@ -1,284 +1,74 @@
-<div class="bg-white overflow-hidden shadow-sm sm:rounded-lg m-2 h-[calc(100vh-64px)]">
-	<!-- CONTENEDOR MAESTRO -->
+<div class="m-2 min-h-[calc(100vh-5rem)] overflow-hidden rounded-lg bg-white shadow-sm">
+    <div class="mx-auto max-w-screen-2xl space-y-3 p-2">
+        <header class="finance-card flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+            <div><div class="flex items-center gap-2"><span class="rounded-md bg-indigo-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-indigo-700">Libro auxiliar</span><span class="text-xs font-semibold text-slate-400">Ventas · devoluciones · notas de crédito</span></div><h1 class="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Libro de ventas</h1><p class="mt-1 text-sm text-slate-500">Consulta el valor original, ajustes posteriores y posición económica neta de cada documento.</p></div>
+            @if(auth()->user()?->hasAnyRole(['Administrador', 'Vendedor']))<a href="{{ route('invoicing') }}" wire:navigate class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-xs font-extrabold text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nueva venta</a>@endif
+        </header>
 
-	<!-- Vista Superior -->
-	<div class="flex items-center w-full my-3">
-		<h2 class="text-xl font-semibold my-2 ml-6 text-gray-900 w-full">Panel de ventas: Historial de ventas</h2>
-	</div>
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article class="finance-card p-5"><p class="finance-label">Venta bruta vigente</p><p class="finance-money mt-3 text-2xl font-extrabold text-slate-950">C$ {{ number_format($grossSales, 2) }}</p><p class="mt-2 text-xs text-slate-400">Documentos no anulados</p></article>
+            <article class="finance-card p-5"><p class="finance-label">Reembolsos emitidos</p><p class="finance-money mt-3 text-2xl font-extrabold text-rose-700">− C$ {{ number_format($refunded, 2) }}</p><p class="mt-2 text-xs text-slate-400">Devoluciones completadas</p></article>
+            <article class="rounded-2xl bg-[#14213d] p-5 text-white shadow-lg shadow-slate-300"><p class="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-300">Venta neta</p><p class="finance-money mt-3 text-2xl font-extrabold">C$ {{ number_format($netSales, 2) }}</p><p class="mt-2 text-xs text-slate-400">Bruta menos reembolsos</p></article>
+            <article class="finance-card p-5"><p class="finance-label">Documentos anulados</p><p class="finance-money mt-3 text-2xl font-extrabold text-amber-700">{{ number_format($voidedCount) }}</p><p class="mt-2 text-xs text-slate-400">Con contramovimientos auditados</p></article>
+        </section>
 
-	<div class="border-t border-gray-300"></div> <!-- Separador -->
+        <section class="finance-card overflow-hidden">
+            <div class="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                <div><p class="finance-label">Registro cronológico</p><h2 class="mt-1 text-lg font-extrabold text-slate-900">Documentos contabilizados</h2></div>
+                <div class="flex flex-col gap-2 sm:flex-row"><div class="relative sm:w-72"><svg class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input wire:model.live.debounce.300ms="search" class="finance-input py-2.5 pl-10" placeholder="Venta, cliente o identificación"></div><select wire:model.live="statusFilter" class="finance-input py-2.5 sm:w-48"><option value="all">Todos los estados</option><option value="completed">Completadas</option><option value="returned">Con devoluciones</option><option value="voided">Anuladas</option></select></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500"><tr>
+                        @foreach([['id','Documento'],['customer_id','Cliente'],['sale_date','Fecha'],['total','Importe']] as [$column,$label])<th class="px-5 py-3 {{ $column === 'total' ? 'text-right' : 'text-left' }}"><button wire:click="sortBy('{{ $column }}')" class="inline-flex items-center gap-1.5">{{ $label }} @if($sortColumn === $column)<span class="text-blue-600">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>@endif</button></th>@endforeach
+                        <th class="px-5 py-3 text-left">Canal</th><th class="px-5 py-3 text-left">Posición económica</th><th class="px-5 py-3 text-right">Acciones</th>
+                    </tr></thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @forelse($sales as $sale)
+                            @php($economicStatus = $sale->economic_status)
+                            <tr class="transition hover:bg-slate-50/80">
+                                <td class="px-5 py-4"><p class="font-extrabold text-slate-900">VTA-{{ str_pad($sale->id, 6, '0', STR_PAD_LEFT) }}</p><p class="mt-0.5 text-[11px] text-slate-400">{{ $sale->saleDetails->sum('quantity') }} unidades</p></td>
+                                <td class="px-5 py-4"><p class="font-bold text-slate-800">{{ $sale->customer?->name }}</p><p class="mt-0.5 text-[11px] text-slate-400">{{ $sale->customer?->dni_ruc }} · {{ $sale->user?->name }}</p></td>
+                                <td class="whitespace-nowrap px-5 py-4"><p class="font-semibold text-slate-700">{{ $sale->sale_date?->format('d/m/Y') }}</p><p class="text-[11px] text-slate-400">{{ $sale->sale_date?->format('H:i') }}</p></td>
+                                <td class="finance-money whitespace-nowrap px-5 py-4 text-right font-extrabold text-slate-950">C$ {{ number_format($sale->total, 2) }}</td>
+                                <td class="px-5 py-4"><span class="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-blue-700">{{ $sale->paymentMethod?->name }}</span></td>
+                                <td class="px-5 py-4"><span @class(['inline-flex rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider', 'bg-rose-50 text-rose-700' => $economicStatus === 'voided', 'bg-slate-100 text-slate-700' => $economicStatus === 'fully_returned', 'bg-amber-50 text-amber-700' => $economicStatus === 'partially_returned', 'bg-emerald-50 text-emerald-700' => $economicStatus === 'completed'])>{{ match($economicStatus) { 'voided' => 'Anulada', 'fully_returned' => 'Devuelta total', 'partially_returned' => 'Devuelta parcial', default => 'Completada' } }}</span></td>
+                                <td class="px-5 py-4"><div class="flex justify-end gap-2"><button type="button" wire:click="view({{ $sale->id }})" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-extrabold text-slate-700 transition hover:border-blue-200 hover:text-blue-700"><svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/></svg>Detalle</button>@if(auth()->user()?->hasRole('Administrador') && $sale->status === 'completed')<button type="button" wire:click="requestReturn({{ $sale->id }})" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-extrabold text-amber-700 hover:bg-amber-100">Devolver</button><button type="button" wire:click="requestVoid({{ $sale->id }})" class="rounded-lg px-3 py-2 text-[11px] font-extrabold text-rose-600 hover:bg-rose-50">Anular</button>@endif</div></td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="7" class="px-5 py-16 text-center"><p class="font-semibold text-slate-500">No se encontraron documentos con estos criterios.</p></td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="border-t border-slate-100 px-5 py-4">{{ $sales->links('custom-tailwind') }}</div>
+        </section>
+    </div>
 
-	<!-- Tabla de datos -->
-	<div class="m-6 bg-white border border-gray-300 rounded-lg shadow-md overflow-hidden">
-		<table class="min-w-full bg-white border-collapse p-6">
-			<thead>
-				<tr>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10 whitespace-nowrap">
-						<button wire:click="sortBy('id')" class="flex items-center justify-center w-full text-white">
-							{{ __('No. Venta') }}
-							@if ($sortColumn === 'id')
-								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-							@endif
-						</button>
-					</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">
-						<button wire:click="sortBy('customer_id')" class="flex items-center justify-center w-full text-white">
-							{{ __('Cliente') }}
-							@if ($sortColumn === 'customer_id')
-								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-							@endif
-						</button>
-					</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">
-						<button wire:click="sortBy('user_id')" class="flex items-center justify-center w-full text-white">
-							{{ __('Vendedor') }}
-							@if ($sortColumn === 'user_id')
-								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-							@endif
-						</button>
-					</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">
-						<button wire:click="sortBy('total')" class="flex items-center justify-center w-full text-white">
-							{{ __('Total') }}
-							@if ($sortColumn === 'total')
-								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-							@endif
-						</button>
-					</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">
-						<button wire:click="sortBy('sale_date')" class="flex items-center justify-center w-full text-white">
-							{{ __('Fecha') }}
-							@if ($sortColumn === 'sale_date')
-								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-							@endif
-						</button>
-					</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10 whitespace-nowrap">{{ __('Metodo de pago') }}</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10 whitespace-nowrap">
-						<button wire:click="sortBy('status')" class="flex items-center justify-center w-full text-white">
-							{{ __('Estado') }}
-							@if ($sortColumn === 'status')
-								<span class="ml-2">{{ $sortDirection === 'asc' ? '↑' : '↓' }}</span>
-							@endif
-						</button>
-					</th>
-					<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white w-10">{{ __('Acciones') }}</th>
-				</tr>
-			</thead>
+    <x-dialog-modal name="modal-sale-detail" maxWidth="3xl">
+        <x-slot name="title">@if($selectedSale)<div class="flex items-start justify-between gap-4"><div><p class="finance-label">Documento contabilizado</p><h2 class="mt-1 text-xl font-extrabold text-slate-900">VTA-{{ str_pad($selectedSale->id, 6, '0', STR_PAD_LEFT) }}</h2></div><span class="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-extrabold uppercase text-slate-600">Solo lectura</span></div>@endif</x-slot>
+        <x-slot name="content">
+            @if($selectedSale)
+                <div class="space-y-6">
+                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><div class="rounded-xl bg-slate-50 p-3"><p class="finance-label">Fecha</p><p class="mt-1 text-sm font-bold text-slate-800">{{ $selectedSale->sale_date?->format('d/m/Y H:i') }}</p></div><div class="rounded-xl bg-slate-50 p-3"><p class="finance-label">Cliente</p><p class="mt-1 truncate text-sm font-bold text-slate-800">{{ $selectedSale->customer?->name }}</p></div><div class="rounded-xl bg-slate-50 p-3"><p class="finance-label">Vendedor</p><p class="mt-1 truncate text-sm font-bold text-slate-800">{{ $selectedSale->user?->name }}</p></div><div class="rounded-xl bg-slate-50 p-3"><p class="finance-label">Pago</p><p class="mt-1 text-sm font-bold text-slate-800">{{ $selectedSale->paymentMethod?->name }}</p></div></div>
+                    <div class="overflow-hidden rounded-xl border border-slate-200"><table class="min-w-full text-sm"><thead class="bg-slate-900 text-[10px] font-bold uppercase tracking-wider text-slate-300"><tr><th class="px-4 py-3 text-left">Producto</th><th class="px-4 py-3 text-center">Cant.</th><th class="px-4 py-3 text-right">Precio</th><th class="px-4 py-3 text-right">Subtotal</th></tr></thead><tbody class="divide-y divide-slate-100">@foreach($saleDetails as $detail)<tr><td class="px-4 py-3 font-bold text-slate-800">{{ $detail->product?->name }}</td><td class="px-4 py-3 text-center">{{ $detail->quantity }}</td><td class="finance-money px-4 py-3 text-right">C$ {{ number_format($detail->price, 2) }}</td><td class="finance-money px-4 py-3 text-right font-extrabold">C$ {{ number_format($detail->total, 2) }}</td></tr>@endforeach</tbody></table></div>
+                    <div class="grid gap-3 sm:grid-cols-3"><div class="rounded-xl border border-slate-200 p-4"><p class="finance-label">Valor original</p><p class="finance-money mt-2 text-xl font-extrabold text-slate-900">C$ {{ number_format($selectedSale->total, 2) }}</p></div><div class="rounded-xl border border-rose-200 bg-rose-50 p-4"><p class="text-[11px] font-bold uppercase tracking-wider text-rose-600">Reembolsado</p><p class="finance-money mt-2 text-xl font-extrabold text-rose-700">C$ {{ number_format($selectedSale->refunded_total, 2) }}</p></div><div class="rounded-xl bg-[#14213d] p-4 text-white"><p class="text-[11px] font-bold uppercase tracking-wider text-blue-300">Valor neto</p><p class="finance-money mt-2 text-xl font-extrabold">C$ {{ number_format($selectedSale->net_economic_value, 2) }}</p></div></div>
+                    @if($selectedSale->saleReturns->isNotEmpty())<div><p class="finance-label">Ajustes posteriores</p><div class="mt-3 space-y-3">@foreach($selectedSale->saleReturns as $saleReturn)<div class="rounded-xl border border-amber-200 bg-amber-50/60 p-4 text-sm"><div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-amber-900">{{ $saleReturn->return_number }} · {{ $saleReturn->creditNote?->number }}</strong><span class="finance-money font-extrabold text-rose-700">− C$ {{ number_format($saleReturn->refund?->amount, 2) }}</span></div><p class="mt-2 text-xs text-slate-600">{{ $saleReturn->reason }} · {{ $saleReturn->refund?->paymentMethod?->name }}</p></div>@endforeach</div></div>@endif
+                </div>
+            @endif
+        </x-slot>
+        <x-slot name="footer"><button type="button" wire:click="$dispatch('close-modal', 'modal-sale-detail')" class="rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-extrabold text-white">Cerrar detalle</button></x-slot>
+    </x-dialog-modal>
 
-			<tbody>
-				@foreach($sales as $sale)
-					<tr class="hover:bg-gray-100">
-						<td class="py-2 px-4 border-b border-gray-300 text-center text-sm text-gray-700">{{ $sale->id }}</td>
-						<td class="py-2 px-4 border-b border-gray-300 text-left text-sm text-gray-700">{{ $sale->customer->name }}</td>
-						<td class="py-2 px-4 border-b border-gray-300 text-left text-sm text-gray-700">{{ $sale->user->name }}</td>
-						<td class="py-2 px-4 border-b border-gray-300 text-right text-sm text-gray-700">${{ number_format($sale->total, 2) }}</td>
-						<td class="py-2 px-4 border-b border-gray-300 text-center text-sm text-gray-700">{{ $sale->sale_date }}</td>
-						<td class="py-2 px-4 border-b border-gray-300 text-center text-xs font-black uppercase">
-							<div class="flex justify-center items-center">
-								<div class="px-1 rounded-3xl border w-fit {{ $sale->paymentMethod->code === 'CASH' ? 'bg-green-200 border-green-600 text-green-600' : 'bg-blue-200 border-blue-600 text-blue-600' }}">
-									{{ $sale->paymentMethod->name }}
-								</div>
-							</div>
-						</td>
-						<td class="py-2 px-4 border-b border-gray-300 text-center text-xs font-bold uppercase">
-							<span class="rounded-full px-2 py-1 {{ $sale->economic_status === 'voided' ? 'bg-red-100 text-red-700' : ($sale->economic_status === 'fully_returned' ? 'bg-gray-200 text-gray-800' : ($sale->economic_status === 'partially_returned' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700')) }}">
-								{{ match ($sale->economic_status) { 'voided' => 'Anulada', 'fully_returned' => 'Devuelta total', 'partially_returned' => 'Devuelta parcial', default => 'Completada' } }}
-							</span>
-						</td>
+    <x-dialog-modal name="modal-return-sale" maxWidth="3xl">
+        <x-slot name="title"><div><p class="finance-label">Documento correctivo</p><h2 class="mt-1 text-xl font-extrabold text-slate-900">Procesar devolución y reembolso</h2><p class="mt-1 text-xs text-slate-500">Se emitirá una nota de crédito y los contramovimientos correspondientes.</p></div></x-slot>
+        <x-slot name="content"><div class="space-y-4">@error('returnItems')<p class="rounded-xl bg-rose-50 p-3 text-sm font-semibold text-rose-700">{{ $message }}</p>@enderror @foreach($returnItems as $index => $item)<div class="grid gap-3 rounded-xl border border-slate-200 p-4 md:grid-cols-6 md:items-end" wire:key="return-item-{{ $item['sale_detail_id'] }}"><div class="md:col-span-2"><p class="font-extrabold text-slate-900">{{ $item['product'] }}</p><p class="mt-1 text-[11px] text-slate-500">Original {{ $item['original'] }} · Devuelto {{ $item['returned'] }} · Disponible {{ $item['available'] }}</p></div><label><span class="finance-label">Cantidad</span><input type="number" min="0" max="{{ $item['available'] }}" wire:model="returnItems.{{ $index }}.quantity" class="finance-input mt-2"></label><label><span class="finance-label">Condición</span><select wire:model.live="returnItems.{{ $index }}.condition" class="finance-input mt-2"><option value="sellable">Vendible</option><option value="damaged">Dañado</option><option value="defective">Defectuoso</option><option value="quarantine">Cuarentena</option></select></label><label class="flex items-center gap-2 rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-700"><input type="checkbox" wire:model="returnItems.{{ $index }}.restock" class="rounded border-slate-300 text-blue-600">Reingresar</label><div class="finance-money text-right font-extrabold text-slate-900">C$ {{ number_format($this->returnLineTotal($item), 2) }}</div></div>@endforeach<div class="rounded-xl bg-[#14213d] p-4 text-right text-white"><span class="text-xs font-bold uppercase tracking-wider text-blue-300">Total del reembolso</span><strong class="finance-money ms-4 text-2xl">C$ {{ number_format($this->returnRefundTotal(), 2) }}</strong></div><label class="block"><span class="finance-label">Motivo obligatorio</span><textarea wire:model="returnReason" rows="3" class="finance-input mt-2"></textarea></label><div class="grid gap-4 sm:grid-cols-2"><label><span class="finance-label">Método de reembolso</span><select wire:model="refundMethodId" class="finance-input mt-2">@foreach($refundMethods ?? [] as $method)<option value="{{ $method->id }}">{{ $method->name }}</option>@endforeach</select></label><label><span class="finance-label">Referencia</span><input wire:model="refundReference" class="finance-input mt-2" placeholder="Opcional según método"></label></div></div></x-slot>
+        <x-slot name="footer"><button type="button" wire:click="$dispatch('close-modal', 'modal-return-sale')" class="rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-extrabold text-slate-700">Cancelar</button><button type="button" wire:click="processReturn" wire:loading.attr="disabled" class="ms-3 rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-amber-700">Emitir devolución</button></x-slot>
+    </x-dialog-modal>
 
-						<!-- BOTONES DE ACCION -->
-						<td class="py-2 px-4 border-b border-gray-300 text-left text-sm text-gray-700">
-							<div class="flex w-full justify-center">
-								<a class="z-30 cursor-pointer" wire:click="view({{ $sale->id }})">
-									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5 mx-2 fill-gray-700 hover:fill-sky-500">
-										<path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-										<path fill-rule="evenodd" d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 0 1 0-1.113ZM17.25 12a5.25 5.25 0 1 1-10.5 0 5.25 5.25 0 0 1 10.5 0Z" clip-rule="evenodd" />
-									</svg>
-								</a>
-								@if (auth()->user()?->hasRole('Administrador') && $sale->status === 'completed')
-									<button type="button" class="mx-2 text-xs font-bold text-amber-700 hover:text-amber-900" wire:click="requestReturn({{ $sale->id }})" title="Devolver productos">
-										Devolver
-									</button>
-									<button type="button" class="z-30 cursor-pointer" wire:click="requestVoid({{ $sale->id }})" title="Anular venta">
-										<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-5 mx-2 fill-gray-700 hover:fill-red-600">
-											<path fill-rule="evenodd" d="M9.401 3.003c.114-.298.4-.495.719-.495h3.76c.319 0 .605.197.719.495l.58 1.522 1.63.08a.75.75 0 0 1 .709.787l-.75 14.25a.75.75 0 0 1-.749.711H7.981a.75.75 0 0 1-.749-.711l-.75-14.25a.75.75 0 0 1 .709-.787l1.63-.08.58-1.522ZM10.5 8.25a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm3 0a.75.75 0 0 1 .75.75v6a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" />
-										</svg>
-									</button>
-								@endif
-							</div>
-						</td>
-					</tr>
-				@endforeach
-			</tbody>
-		</table>
-	</div>
-
-	<div class="my-2">
-		{{ $sales->links('custom-tailwind') }}
-	</div>
-
-	<!-- Modal para los detalles de la venta -->
-	<x-dialog-modal name="modal-sale-detail" maxWidth="3xl">
-		<x-slot name="title">
-			<div class="flex justify-center mt-2">
-				<h1 class="text-lg text-gray-900 border-b border-gray-300 pb-1 w-full text-center font-bold whitespace-nowrap" style="width: 50%">Detalle de venta</h1>
-			</div>
-		</x-slot>
-
-		<x-slot name="content">
-			<div class="px-8 py-2"> 
-				@if($selectedSale)
-				<div class="mb-4">
-					<div class="border-t border-gray-300 mt-4"></div> <!-- Separador -->
-					
-					<!-- INFORMACION DEL CLIENTE -->
-					<p class="text-base mb-2"><strong>Información del cliente</strong></p>
-					<div class="flex">
-						<div class="flex-col me-10">
-							<div><span><strong>DNI/RUC</strong></span></div>
-							<div><span>{{ $selectedSale->customer->dni_ruc }}</span></div>
-						</div>
-						<div class="flex-col me-10">
-							<div><span><strong>Nombre</strong></span></div>
-							<div><span>{{ $selectedSale->customer->name }}</span></div>
-						</div>
-						<div class="flex-col me-10">
-							<div><span><strong>Correo</strong></span></div>
-							<div><span>{{ $selectedSale->customer->email }}</span></div>
-						</div>
-						<div class="flex-col me-10">
-							<div><span><strong>Telefono</strong></span></div>
-							<div><span>{{ $selectedSale->customer->phone }}</span></div>
-						</div>
-					</div>
-
-					<div class="border-t border-gray-300 mt-4"></div> <!-- Separador -->
-
-					<!-- INFORMACION DEL USUARIO -->
-					<p class="text-base mb-2"><strong>Información del vendedor</strong></p>
-					<div class="flex">
-						<div class="flex-col me-20">
-							<div><span><strong>Nombre</strong></span></div>
-							<div><span>{{ $selectedSale->user->name }}</span></div>
-						</div>
-						<div class="flex-col me-10">
-							<div><span><strong>Correo</strong></span></div>
-							<div><span>{{ $selectedSale->user->email }}</span></div>
-						</div>
-					</div>
-
-					<div class="border-t border-gray-300 mt-4"></div> <!-- Separador -->
-
-					<div class="flex items-center">
-						<div class="w-full">
-							<p><strong>Fecha:</strong> {{ $selectedSale->sale_date }}</p>
-						</div>
-						<div class="text-end">
-							<p><strong>Metodo de pago:</strong> {{ $selectedSale->paymentMethod->name }}</p>
-						</div>
-					</div>
-				</div>
-
-				<table class="min-w-full bg-white border border-gray-300">
-					<thead>
-						<tr>
-							<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">Producto</th>
-							<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">Cantidad</th>
-							<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">Precio</th>
-							<th class="py-2 px-4 border border-gray-300 text-center text-sm font-semibold bg-gray-900 text-white">Subtotal</th>
-						</tr>
-					</thead>
-					<tbody>
-						@foreach($saleDetails as $detail)
-							<tr>
-								<td class="py-2 px-4 border-b border-gray-300 text-left text-sm text-gray-700">{{ $detail->product->name }}</td>
-								<td class="py-2 px-4 border-b border-gray-300 text-right text-sm text-gray-700">{{ $detail->quantity }}</td>
-								<td class="py-2 px-4 border-b border-gray-300 text-right text-sm text-gray-700">${{ number_format($detail->price, 2) }}</td>
-								<td class="py-2 px-4 border-b border-gray-300 text-right text-sm text-gray-700">${{ number_format($detail->total, 2) }}</td>
-							</tr>
-						@endforeach
-					</tbody>
-				</table>
-
-				<div class="text-right text-lg font-black px-4 mt-2">
-					<div>Total original: ${{ number_format($selectedSale->total, 2) }}</div>
-					<div class="text-red-700">Reembolsado: ${{ number_format($selectedSale->refunded_total, 2) }}</div>
-						<div class="text-emerald-700">Valor neto: ${{ number_format($selectedSale->net_economic_value, 2) }}</div>
-						<div>Estado económico: {{ match ($selectedSale->economic_status) { 'voided' => 'Anulada', 'fully_returned' => 'Devuelta totalmente', 'partially_returned' => 'Devuelta parcialmente', default => 'Completada' } }}</div>
-				</div>
-
-				@if ($selectedSale->saleReturns->isNotEmpty())
-					<div class="mt-6 border-t pt-4">
-						<h3 class="font-bold mb-2">Devoluciones y notas de crédito</h3>
-						@foreach ($selectedSale->saleReturns as $saleReturn)
-							<div class="mb-3 rounded border border-gray-200 p-3 text-sm">
-								<div class="font-semibold">{{ $saleReturn->return_number }} · {{ $saleReturn->creditNote?->number }}</div>
-								<div>{{ $saleReturn->reason }}</div>
-								<div>Reembolso: ${{ number_format($saleReturn->refund?->amount, 2) }} vía {{ $saleReturn->refund?->paymentMethod?->name }}</div>
-								@foreach ($saleReturn->items as $item)
-									<div>{{ $item->product->name }}: {{ $item->quantity }} · {{ $item->restock ? 'reingresó a stock' : 'sin reingreso a stock' }}</div>
-								@endforeach
-							</div>
-						@endforeach
-					</div>
-				@endif
-			</div>
-			@endif
-		</x-slot>
-
-		<x-slot name="footer">
-			<div class="flex p-1 w-full justify-end items-center">
-				<img src="{{ asset('graphicResources/LEO AutoParts LINE BLACK.png') }}" class="w-fit h-5 object-scale-down">
-			</div>
-		</x-slot>
-	</x-dialog-modal>
-
-	<x-dialog-modal name="modal-return-sale" maxWidth="4xl">
-		<x-slot name="title">Procesar devolución y reembolso</x-slot>
-		<x-slot name="content">
-			<div class="space-y-4">
-				@error('returnItems') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
-				@foreach ($returnItems as $index => $item)
-					<div class="grid grid-cols-6 gap-3 items-end rounded border p-3" wire:key="return-item-{{ $item['sale_detail_id'] }}">
-						<div class="col-span-2"><strong>{{ $item['product'] }}</strong><div class="text-xs">Original {{ $item['original'] }} · Devuelto {{ $item['returned'] }} · Disponible {{ $item['available'] }}</div></div>
-						<div><x-input-label value="Cantidad" /><x-text-input type="number" min="0" max="{{ $item['available'] }}" wire:model="returnItems.{{ $index }}.quantity" class="w-full" /></div>
-						<div><x-input-label value="Condición" /><select wire:model.live="returnItems.{{ $index }}.condition" class="w-full rounded border-gray-300"><option value="sellable">Vendible</option><option value="damaged">Dañado</option><option value="defective">Defectuoso</option><option value="quarantine">Cuarentena</option></select></div>
-						<label class="flex items-center gap-2"><input type="checkbox" wire:model="returnItems.{{ $index }}.restock"> Reingresar</label>
-						<div class="text-right">${{ number_format($this->returnLineTotal($item), 2) }}</div>
-					</div>
-				@endforeach
-				<div class="rounded bg-gray-900 p-3 text-right text-lg font-black text-white">Total a reembolsar: ${{ number_format($this->returnRefundTotal(), 2) }}</div>
-				<div><x-input-label value="Motivo obligatorio" /><x-textarea wire:model="returnReason" rows="3" class="w-full" /><x-input-error :messages="$errors->get('returnReason')" /></div>
-				<div class="grid grid-cols-2 gap-4">
-					<div><x-input-label value="Método de reembolso" /><select wire:model="refundMethodId" class="w-full rounded border-gray-300">@foreach ($refundMethods ?? [] as $method)<option value="{{ $method->id }}">{{ $method->name }}</option>@endforeach</select></div>
-					<div><x-input-label value="Referencia" /><x-text-input wire:model="refundReference" class="w-full" /></div>
-				</div>
-			</div>
-		</x-slot>
-		<x-slot name="footer"><x-secondary-button wire:click="$dispatch('close-modal', 'modal-return-sale')">Cancelar</x-secondary-button><x-danger-button class="ms-3" wire:click="processReturn" wire:loading.attr="disabled">Confirmar devolución</x-danger-button></x-slot>
-	</x-dialog-modal>
-
-	<x-dialog-modal name="modal-void-sale" maxWidth="lg">
-		<x-slot name="title">Anular venta</x-slot>
-
-		<x-slot name="content">
-			<p class="mb-4 text-sm text-gray-600">
-				La venta y sus pagos se conservarán. El sistema generará contramovimientos de inventario y caja.
-			</p>
-			<x-input-label for="voidReason" value="Motivo obligatorio" />
-			<x-textarea id="voidReason" wire:model="voidReason" rows="4" class="mt-1 block w-full" />
-			<x-input-error :messages="$errors->get('voidReason')" class="mt-2" />
-		</x-slot>
-
-		<x-slot name="footer">
-			<x-secondary-button type="button" wire:click="$dispatch('close-modal', 'modal-void-sale')">
-				Cancelar
-			</x-secondary-button>
-			<x-danger-button type="button" class="ms-3" wire:click="voidSale" wire:loading.attr="disabled" wire:target="voidSale">
-				Confirmar anulación
-			</x-danger-button>
-		</x-slot>
-	</x-dialog-modal>
-
+    <x-dialog-modal name="modal-void-sale" maxWidth="lg">
+        <x-slot name="title"><div><p class="text-[11px] font-bold uppercase tracking-wider text-rose-600">Operación irreversible</p><h2 class="mt-1 text-xl font-extrabold text-slate-900">Anular venta</h2></div></x-slot>
+        <x-slot name="content"><div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-800">La venta y sus pagos se conservarán. El sistema generará contramovimientos auditables de inventario y caja.</div><label class="mt-5 block"><span class="finance-label">Motivo obligatorio</span><textarea wire:model="voidReason" rows="4" class="finance-input mt-2" placeholder="Explique la causa de la anulación"></textarea></label><x-input-error :messages="$errors->get('voidReason')" class="mt-2" /></x-slot>
+        <x-slot name="footer"><button type="button" wire:click="$dispatch('close-modal', 'modal-void-sale')" class="rounded-xl border border-slate-300 px-4 py-2.5 text-xs font-extrabold text-slate-700">Cancelar</button><button type="button" wire:click="voidSale" wire:loading.attr="disabled" class="ms-3 rounded-xl bg-rose-600 px-4 py-2.5 text-xs font-extrabold text-white hover:bg-rose-700">Confirmar anulación</button></x-slot>
+    </x-dialog-modal>
 </div>

@@ -2,78 +2,88 @@
 
 namespace App\Livewire;
 
+use App\Models\CashSession;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\Refund;
 use App\Models\Sale;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class DashboardPanel extends Component
 {
-    public $totalSales;
+    public int $totalSales = 0;
 
-    public $totalCustomers;
+    public int $totalCustomers = 0;
 
-    public $totalProducts;
+    public int $totalProducts = 0;
+
+    public int $lowStockCount = 0;
+
+    public int $openCashSessions = 0;
+
+    public float $grossSales = 0;
+
+    public float $refundedTotal = 0;
+
+    public float $netSales = 0;
+
+    public float $todayNetSales = 0;
 
     public $recentSales;
 
-    public $ventasPorMes;
-
-    public $ventasTotales;
-
-    public $progresoVentas;
+    public array $ventasPorMes = [];
 
     public $topSellers;
 
-    public $paymentComparison;
+    public $paymentBreakdown;
 
-    public function mount()
+    public function mount(): void
     {
-        $this->totalSales = Sale::count();
-        $this->totalCustomers = Customer::count();
-        $this->totalProducts = Product::count();
-        $this->recentSales = Sale::latest()->take(3)->get();
+        $this->totalSales = Sale::where('status', 'completed')->count();
+        $this->totalCustomers = Customer::where('is_active', true)->count();
+        $this->totalProducts = Product::where('is_active', true)->count();
+        $this->lowStockCount = Product::where('is_active', true)->whereColumn('stock', '<=', 'min_stock')->count();
+        $this->openCashSessions = CashSession::where('status', 'open')->count();
+        $this->grossSales = (float) Sale::where('status', 'completed')->sum('total');
+        $this->refundedTotal = (float) Refund::where('status', 'completed')->sum('amount');
+        $this->netSales = $this->grossSales - $this->refundedTotal;
 
-        $this->topSellers = $this->getTopSellers();
-        $this->paymentComparison = $this->getPaymentComparison();
+        $todayGross = (float) Sale::where('status', 'completed')->whereDate('sale_date', today())->sum('total');
+        $todayRefunded = (float) Refund::where('status', 'completed')->whereDate('processed_at', today())->sum('amount');
+        $this->todayNetSales = $todayGross - $todayRefunded;
 
-        $this->ventasPorMes = Sale::selectRaw('MONTH(sale_date) as mes, SUM(total) as total')
-            ->groupBy('mes')
-            ->orderBy('mes')
-            ->pluck('total', 'mes')
-            ->toArray();
-    }
+        $this->recentSales = Sale::with(['customer', 'user', 'paymentMethod', 'saleDetails', 'saleReturns.items'])
+            ->latest('sale_date')
+            ->limit(6)
+            ->get();
 
-    public function getTopSellers()
-    {
-        return Sale::select('user_id', DB::raw('count(*) as sales_count'))
-            ->whereIn('user_id', [1, 2, 3])
+        $this->ventasPorMes = Sale::query()
+            ->where('status', 'completed')
+            ->whereYear('sale_date', now()->year)
+            ->selectRaw('MONTH(sale_date) as month_number, SUM(total) as total')
+            ->groupBy('month_number')
+            ->orderBy('month_number')
+            ->pluck('total', 'month_number')
+            ->map(fn ($value): float => (float) $value)
+            ->all();
+
+        $this->topSellers = Sale::query()
+            ->with('user')
+            ->where('status', 'completed')
+            ->select('user_id', DB::raw('COUNT(*) as sales_count'), DB::raw('SUM(total) as sales_total'))
             ->groupBy('user_id')
-            ->orderByDesc('sales_count')
-            ->get()
-            ->map(function ($sale) {
-                $sale->user = User::find($sale->user_id);
+            ->orderByDesc('sales_total')
+            ->limit(5)
+            ->get();
 
-                return $sale;
-            });
-    }
-
-    public function getPaymentComparison()
-    {
-        $totalSales = Sale::count();
-
-        $paypalSales = Sale::where('payment_method_id', 2)->count();
-        $cashSales = Sale::where('payment_method_id', 1)->count();
-
-        $paypalPercentage = $totalSales > 0 ? ($paypalSales / $totalSales) * 100 : 0;
-        $cashPercentage = $totalSales > 0 ? ($cashSales / $totalSales) * 100 : 0;
-
-        return [
-            'paypal' => round($paypalPercentage),
-            'cash' => round($cashPercentage),
-        ];
+        $this->paymentBreakdown = Sale::query()
+            ->with('paymentMethod')
+            ->where('status', 'completed')
+            ->select('payment_method_id', DB::raw('COUNT(*) as operation_count'), DB::raw('SUM(total) as operation_total'))
+            ->groupBy('payment_method_id')
+            ->orderByDesc('operation_total')
+            ->get();
     }
 
     public function render()

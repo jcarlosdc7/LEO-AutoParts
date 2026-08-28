@@ -116,10 +116,24 @@ class CashPanel extends Component
     public function render()
     {
         $session = $this->currentSession();
+        $movements = $session?->movements()->latest()->limit(50)->get() ?? collect();
+        $income = $session ? (float) $session->movements()->whereIn('type', ['sale', 'income'])->sum('amount') : 0;
+        $outflow = $session ? (float) $session->movements()->whereIn('type', ['expense', 'withdrawal', 'refund'])->sum('amount') : 0;
+        $expectedAmount = $session ? round((float) $session->opening_amount + $income - $outflow, 2) : 0;
+        $recentSessions = CashSession::query()
+            ->with('register')
+            ->where('user_id', Auth::id())
+            ->latest('opened_at')
+            ->limit(5)
+            ->get();
 
         return view('livewire.lwCash.cash-panel', [
             'session' => $session,
-            'movements' => $session?->movements()->latest()->limit(20)->get() ?? collect(),
+            'movements' => $movements,
+            'income' => $income,
+            'outflow' => $outflow,
+            'expectedAmount' => $expectedAmount,
+            'recentSessions' => $recentSessions,
         ]);
     }
 

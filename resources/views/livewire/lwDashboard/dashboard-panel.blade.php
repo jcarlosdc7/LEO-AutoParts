@@ -1,128 +1,41 @@
-<div class="min-h-[calc(100vh-4rem)] bg-slate-50 p-4 sm:p-6 lg:p-8">
-    <div class="mx-auto max-w-7xl space-y-6">
-        <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-[0.22em] text-blue-600">LEO AutoParts</p>
-                <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Resumen del negocio</h1>
-                <p class="mt-1 text-sm text-slate-500">Indicadores y actividad reciente de tu empresa.</p>
-            </div>
-            <a href="{{ route('invoicing') }}" class="inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Registrar nueva venta</a>
+<div class="m-2 min-h-[calc(100vh-5rem)] overflow-hidden rounded-lg bg-white shadow-sm">
+    <div class="mx-auto max-w-screen-2xl space-y-3 p-2">
+        <header class="finance-card flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-end sm:justify-between">
+            <div><div class="flex items-center gap-2"><span class="rounded-md bg-blue-100 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-blue-700">Contabilidad gerencial</span><span class="text-xs font-semibold text-slate-400">Corte {{ now()->translatedFormat('d M Y · H:i') }}</span></div><h1 class="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">Panorama financiero</h1><p class="mt-1 text-sm text-slate-500">Ventas, reembolsos, caja e indicadores operativos consolidados.</p></div>
+            <div class="flex flex-wrap gap-2">@if(auth()->user()?->hasAnyRole(['Administrador','Vendedor']))<a href="{{ route('invoicing') }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-extrabold text-white shadow-sm hover:bg-blue-700"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>Nueva venta</a>@endif @if(auth()->user()?->hasAnyRole(['Administrador','Contador']))<a href="{{ route('reports') }}" wire:navigate class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-extrabold text-slate-700 shadow-sm hover:bg-slate-50">Exportar informes</a>@endif</div>
         </header>
 
-        <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <article class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div class="absolute inset-x-0 top-0 h-1 bg-blue-500"></div>
-                <p class="text-sm font-semibold text-slate-500">Ventas realizadas</p>
-                <p class="mt-3 text-4xl font-bold tracking-tight text-slate-900">{{ number_format($totalSales) }}</p>
-                <p class="mt-2 text-xs font-semibold text-blue-600">Acumulado histórico</p>
-            </article>
-            <a href="{{ route('customers') }}" class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div class="absolute inset-x-0 top-0 h-1 bg-emerald-500"></div>
-                <p class="text-sm font-semibold text-slate-500">Clientes registrados</p>
-                <p class="mt-3 text-4xl font-bold tracking-tight text-slate-900">{{ number_format($totalCustomers) }}</p>
-                <p class="mt-2 text-xs font-semibold text-emerald-600">Ver clientes →</p>
-            </a>
-            <a href="{{ route('inventory') }}" class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:col-span-2 xl:col-span-1">
-                <div class="absolute inset-x-0 top-0 h-1 bg-amber-500"></div>
-                <p class="text-sm font-semibold text-slate-500">Productos disponibles</p>
-                <p class="mt-3 text-4xl font-bold tracking-tight text-slate-900">{{ number_format($totalProducts) }}</p>
-                <p class="mt-2 text-xs font-semibold text-amber-600">Revisar inventario →</p>
-            </a>
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <article class="finance-card relative overflow-hidden p-5"><div class="absolute inset-x-0 top-0 h-1 bg-blue-600"></div><div class="flex items-start justify-between"><div><p class="finance-label">Venta bruta vigente</p><p class="finance-money mt-3 text-2xl font-extrabold text-slate-950">C$ {{ number_format($grossSales, 2) }}</p></div><span class="rounded-xl bg-blue-50 p-2.5 text-blue-600"><svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 15l4-4 3 3 5-7"/></svg></span></div><div class="mt-4 flex items-center justify-between text-xs"><span class="text-slate-400">{{ number_format($totalSales) }} documentos</span><span class="font-bold text-blue-600">Histórico</span></div></article>
+            <article class="finance-card relative overflow-hidden p-5"><div class="absolute inset-x-0 top-0 h-1 bg-rose-500"></div><div class="flex items-start justify-between"><div><p class="finance-label">Reembolsos</p><p class="finance-money mt-3 text-2xl font-extrabold text-rose-700">− C$ {{ number_format($refundedTotal, 2) }}</p></div><span class="rounded-xl bg-rose-50 p-2.5 text-rose-600"><svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14 4 9l5-5M4 9h11a5 5 0 0 1 0 10h-3"/></svg></span></div><p class="mt-4 text-xs text-slate-400">Notas de crédito completadas</p></article>
+            <article class="relative overflow-hidden rounded-2xl bg-[#14213d] p-5 text-white shadow-lg shadow-slate-300"><div class="absolute -right-8 -top-8 size-28 rounded-full bg-blue-500/20 blur-2xl"></div><div class="relative flex items-start justify-between"><div><p class="text-[11px] font-bold uppercase tracking-[0.14em] text-blue-300">Venta neta</p><p class="finance-money mt-3 text-2xl font-extrabold">C$ {{ number_format($netSales, 2) }}</p></div><span class="rounded-xl bg-white/10 p-2.5 text-blue-200"><svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg></span></div><p class="relative mt-4 text-xs text-slate-400">Posición después de reembolsos</p></article>
+            <article class="finance-card relative overflow-hidden p-5"><div class="absolute inset-x-0 top-0 h-1 bg-emerald-500"></div><div class="flex items-start justify-between"><div><p class="finance-label">Operación neta de hoy</p><p @class(['finance-money mt-3 text-2xl font-extrabold', 'text-emerald-700' => $todayNetSales >= 0, 'text-rose-700' => $todayNetSales < 0])>C$ {{ number_format($todayNetSales, 2) }}</p></div><span class="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div><p class="mt-4 text-xs text-slate-400">Ventas menos reembolsos del día</p></article>
         </section>
 
-        <section class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-                <h2 class="font-bold text-slate-900">Ventas por mes</h2>
-                <p class="text-sm text-slate-500">Ingresos registrados durante el año</p>
-                @php
-                    $monthNames = [1 => 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-                    $maxMonthly = max($ventasPorMes ?: [1]);
-                @endphp
-                <div class="mt-6 flex h-[250px] items-end gap-2 rounded-xl bg-slate-50 px-4 pb-10 pt-5" aria-label="Gráfico de ventas por mes">
-                    @foreach(range(1, 12) as $month)
-                        @php
-                            $value = (float) ($ventasPorMes[$month] ?? 0);
-                            $height = $value > 0 ? max(8, ($value / $maxMonthly) * 100) : 2;
-                        @endphp
-                        <div class="group relative flex h-full min-w-0 flex-1 items-end">
-                            <div class="w-full rounded-t-md bg-blue-600 transition hover:bg-blue-700" style="height: {{ $height }}%" title="{{ $monthNames[$month] }}: ${{ number_format($value, 2) }}">
-                                <span class="pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 z-10 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-xs font-semibold text-white shadow group-hover:block">${{ number_format($value, 2) }}</span>
-                            </div>
-                            <span class="absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-slate-500 sm:text-xs">{{ $monthNames[$month] }}</span>
-                        </div>
+        <section class="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.8fr)]">
+            <article class="finance-card p-5 sm:p-6">
+                <div class="flex items-start justify-between"><div><p class="finance-label">Evolución</p><h2 class="mt-1 text-lg font-extrabold text-slate-900">Ventas mensuales · {{ now()->year }}</h2><p class="mt-1 text-xs text-slate-400">Importe bruto de documentos vigentes</p></div><span class="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-extrabold uppercase text-blue-700">Córdobas</span></div>
+                @php($monthNames = [1 => 'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'])
+                @php($maxMonthly = max($ventasPorMes ?: [1]))
+                <div class="mt-8 flex h-[290px] items-end gap-2 rounded-2xl border border-slate-100 bg-slate-50/60 px-4 pb-10 pt-8">
+                    @foreach(range(1,12) as $month)
+                        @php($value = (float)($ventasPorMes[$month] ?? 0)) @php($height = $value > 0 ? max(5, ($value / $maxMonthly) * 100) : 1)
+                        <div class="group relative flex h-full min-w-0 flex-1 items-end"><div class="relative w-full rounded-t-lg bg-gradient-to-t from-blue-700 to-blue-500 transition hover:from-blue-600 hover:to-blue-400" style="height: {{ $height }}%"><span class="absolute -top-8 left-1/2 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 px-2 py-1 text-[10px] font-bold text-white shadow-lg group-hover:block">C$ {{ number_format($value, 2) }}</span></div><span class="absolute -bottom-7 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 sm:text-xs">{{ $monthNames[$month] }}</span></div>
                     @endforeach
                 </div>
             </article>
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 class="font-bold text-slate-900">Métodos de pago</h2>
-                <p class="text-sm text-slate-500">Distribución de las transacciones</p>
-                <div class="flex min-h-[310px] flex-col items-center justify-center" aria-label="Gráfico de métodos de pago">
-                    <div class="relative h-48 w-48 rounded-full shadow-inner" style="background: conic-gradient(#10b981 0% {{ $paymentComparison['cash'] }}%, #2563eb {{ $paymentComparison['cash'] }}% 100%);">
-                        <div class="absolute inset-7 flex flex-col items-center justify-center rounded-full bg-white shadow-sm">
-                            <span class="text-2xl font-bold text-slate-900">100%</span>
-                            <span class="text-xs text-slate-500">de las ventas</span>
-                        </div>
-                    </div>
-                    <div class="mt-6 flex flex-wrap justify-center gap-4 text-sm">
-                        <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-emerald-500"></span><span class="text-slate-600">Efectivo</span><strong>{{ $paymentComparison['cash'] }}%</strong></div>
-                        <div class="flex items-center gap-2"><span class="h-3 w-3 rounded-full bg-blue-600"></span><span class="text-slate-600">PayPal</span><strong>{{ $paymentComparison['paypal'] }}%</strong></div>
-                    </div>
-                </div>
-            </article>
+
+            <div class="space-y-6">
+                <article class="finance-card p-5"><p class="finance-label">Control operativo</p><h2 class="mt-1 text-lg font-extrabold text-slate-900">Estado del sistema</h2><div class="mt-5 space-y-3"><div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h5"/></svg></span><div><p class="text-sm font-bold text-slate-800">Cajas abiertas</p><p class="text-[11px] text-slate-400">Sesiones operando ahora</p></div></div><strong class="finance-money text-lg text-slate-900">{{ $openCashSessions }}</strong></div><div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 12 9 5 9-5"/></svg></span><div><p class="text-sm font-bold text-slate-800">Stock bajo</p><p class="text-[11px] text-slate-400">Requiere reposición</p></div></div><strong class="finance-money text-lg text-amber-700">{{ $lowStockCount }}</strong></div><div class="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-3"><div class="flex items-center gap-3"><span class="flex size-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/></svg></span><div><p class="text-sm font-bold text-slate-800">Clientes activos</p><p class="text-[11px] text-slate-400">Base comercial</p></div></div><strong class="finance-money text-lg text-slate-900">{{ $totalCustomers }}</strong></div></div></article>
+
+                <article class="finance-card p-5"><p class="finance-label">Canales de cobro</p><h2 class="mt-1 text-lg font-extrabold text-slate-900">Composición por método</h2>@php($paymentTotal = max((float)$paymentBreakdown->sum('operation_total'), 1))<div class="mt-5 space-y-4">@forelse($paymentBreakdown as $payment)<div><div class="mb-2 flex items-center justify-between gap-3 text-xs"><span class="truncate font-bold text-slate-700">{{ $payment->paymentMethod?->name ?? 'Sin método' }}</span><span class="finance-money whitespace-nowrap font-extrabold text-slate-900">C$ {{ number_format($payment->operation_total, 2) }}</span></div><div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-blue-600" style="width: {{ max(3, ((float)$payment->operation_total / $paymentTotal) * 100) }}%"></div></div><p class="mt-1 text-[10px] text-slate-400">{{ $payment->operation_count }} operaciones</p></div>@empty<p class="py-8 text-center text-sm text-slate-400">Sin cobros registrados.</p>@endforelse</div></article>
+            </div>
         </section>
 
-        <section class="grid grid-cols-1 gap-6 xl:grid-cols-5">
-            <article class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-                <h2 class="font-bold text-slate-900">Vendedores destacados</h2>
-                <p class="text-sm text-slate-500">Clasificación por ventas completadas</p>
-                @php($maxSellerSales = max($topSellers->pluck('sales_count')->toArray() ?: [1]))
-                <div class="mt-7 space-y-6" aria-label="Gráfico de vendedores destacados">
-                    @forelse($topSellers as $index => $seller)
-                        <div>
-                            <div class="mb-2 flex items-center justify-between gap-3 text-sm">
-                                <span class="truncate font-semibold text-slate-700">{{ $index + 1 }}. {{ $seller->user?->name ?? 'Usuario' }}</span>
-                                <span class="whitespace-nowrap font-bold text-slate-900">{{ $seller->sales_count }} ventas</span>
-                            </div>
-                            <div class="h-3 overflow-hidden rounded-full bg-slate-100">
-                                <div class="h-full rounded-full bg-slate-800 transition-all duration-500" style="width: {{ max(5, ($seller->sales_count / $maxSellerSales) * 100) }}%"></div>
-                            </div>
-                        </div>
-                    @empty
-                        <p class="py-16 text-center text-sm text-slate-500">No hay ventas registradas.</p>
-                    @endforelse
-                </div>
-            </article>
-            <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-3">
-                <div class="border-b border-slate-100 px-5 py-4">
-                    <h2 class="font-bold text-slate-900">Ventas recientes</h2>
-                    <p class="text-sm text-slate-500">Últimos movimientos registrados</p>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                            <tr><th class="px-5 py-3">Venta</th><th class="px-5 py-3">Cliente</th><th class="px-5 py-3">Fecha</th><th class="px-5 py-3 text-right">Total</th></tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100">
-                            @forelse($recentSales as $sale)
-                                <tr class="text-slate-700 transition hover:bg-slate-50">
-                                    <td class="px-5 py-4 font-bold text-slate-900">#{{ $sale->id }}</td>
-                                    <td class="px-5 py-4">{{ $sale->customer?->name ?? 'Sin cliente' }}</td>
-                                    <td class="whitespace-nowrap px-5 py-4 text-slate-500">{{ \Carbon\Carbon::parse($sale->sale_date)->format('d/m/Y') }}</td>
-                                    <td class="px-5 py-4 text-right font-bold text-blue-600">${{ number_format($sale->total, 2) }}</td>
-                                </tr>
-                            @empty
-                                <tr><td colspan="4" class="px-5 py-10 text-center text-slate-500">Aún no hay ventas registradas.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </article>
-        </section>
+        <section class="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.7fr)]">
+            <article class="finance-card overflow-hidden"><div class="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div><p class="finance-label">Actividad reciente</p><h2 class="mt-1 text-lg font-extrabold text-slate-900">Últimos documentos</h2></div>@if(auth()->user()?->hasAnyRole(['Administrador','Contador']))<a href="{{ route('salesHistory') }}" wire:navigate class="text-xs font-extrabold text-blue-600 hover:text-blue-700">Ver libro completo →</a>@endif</div><div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500"><tr><th class="px-5 py-3 text-left">Documento</th><th class="px-5 py-3 text-left">Cliente</th><th class="px-5 py-3 text-left">Estado</th><th class="px-5 py-3 text-right">Importe</th></tr></thead><tbody class="divide-y divide-slate-100">@forelse($recentSales as $sale)<tr><td class="px-5 py-4"><p class="font-extrabold text-slate-900">VTA-{{ str_pad($sale->id, 6, '0', STR_PAD_LEFT) }}</p><p class="text-[11px] text-slate-400">{{ $sale->sale_date?->format('d/m/Y H:i') }}</p></td><td class="px-5 py-4"><p class="font-bold text-slate-700">{{ $sale->customer?->name }}</p><p class="text-[11px] text-slate-400">{{ $sale->paymentMethod?->name }}</p></td><td class="px-5 py-4"><span @class(['rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase', 'bg-rose-50 text-rose-700' => $sale->economic_status === 'voided', 'bg-amber-50 text-amber-700' => in_array($sale->economic_status,['fully_returned','partially_returned']), 'bg-emerald-50 text-emerald-700' => $sale->economic_status === 'completed'])>{{ match($sale->economic_status){'voided'=>'Anulada','fully_returned'=>'Devuelta','partially_returned'=>'Ajustada',default=>'Completada'} }}</span></td><td class="finance-money px-5 py-4 text-right font-extrabold text-slate-900">C$ {{ number_format($sale->total, 2) }}</td></tr>@empty<tr><td colspan="4" class="px-5 py-12 text-center text-slate-400">Sin documentos recientes.</td></tr>@endforelse</tbody></table></div></article>
 
-        <nav class="flex flex-wrap justify-center gap-3" aria-label="Accesos rápidos">
-            <a href="{{ route('invoicing') }}" class="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700">Nueva venta</a>
-            <a href="{{ route('customers') }}" class="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700">Ver clientes</a>
-            <a href="{{ route('inventory') }}" class="rounded-xl bg-slate-800 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-slate-900">Ver productos</a>
-        </nav>
+            <article class="finance-card p-5"><p class="finance-label">Desempeño comercial</p><h2 class="mt-1 text-lg font-extrabold text-slate-900">Vendedores por importe</h2>@php($maxSellerTotal = max($topSellers->pluck('sales_total')->map(fn($value)=>(float)$value)->all() ?: [1]))<div class="mt-6 space-y-5">@forelse($topSellers as $index => $seller)<div><div class="mb-2 flex items-center justify-between gap-3"><div class="flex min-w-0 items-center gap-2"><span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-slate-900 text-[10px] font-extrabold text-white">{{ $index + 1 }}</span><span class="truncate text-xs font-bold text-slate-700">{{ $seller->user?->name ?? 'Usuario' }}</span></div><span class="finance-money whitespace-nowrap text-xs font-extrabold text-slate-900">C$ {{ number_format($seller->sales_total, 2) }}</span></div><div class="h-2 overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-gradient-to-r from-slate-800 to-blue-600" style="width: {{ max(4, ((float)$seller->sales_total / $maxSellerTotal) * 100) }}%"></div></div></div>@empty<p class="py-12 text-center text-sm text-slate-400">Sin actividad comercial.</p>@endforelse</div></article>
+        </section>
     </div>
 </div>

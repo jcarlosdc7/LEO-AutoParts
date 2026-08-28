@@ -1,105 +1,95 @@
-<aside class="w-56 bg-gray-900 text-white min-h-screen fixed top-12 z-10">
-	<div class="p-4 flex justify-center items-center">
-		<h1 class="text-base font-semibold">{{ __('Main Menu') }}</h1>
-	</div>
-	<nav class="flex flex-col space-y-1 px-1 ps-0">
-		<a href="{{ route('dashboard') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path fill-rule="evenodd" d="M1.5 7.125c0-1.036.84-1.875 1.875-1.875h6c1.036 0 1.875.84 1.875 1.875v3.75c0 1.036-.84 1.875-1.875 1.875h-6A1.875 1.875 0 0 1 1.5 10.875v-3.75Zm12 1.5c0-1.036.84-1.875 1.875-1.875h5.25c1.035 0 1.875.84 1.875 1.875v8.25c0 1.035-.84 1.875-1.875 1.875h-5.25a1.875 1.875 0 0 1-1.875-1.875v-8.25ZM3 16.125c0-1.036.84-1.875 1.875-1.875h5.25c1.036 0 1.875.84 1.875 1.875v2.25c0 1.035-.84 1.875-1.875 1.875h-5.25A1.875 1.875 0 0 1 3 18.375v-2.25Z" clip-rule="evenodd" />
-			</svg>                      
-			{{ __('Dashboard') }}
-		</a>
+<div>
+    <div x-show="financeSidebarOpen" x-transition.opacity class="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm lg:hidden" @click="financeSidebarOpen = false"></div>
 
-		<div class="border-t border-gray-600"></div> <!-- Separador -->
+    <aside :class="financeSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-white/10 bg-gray-900 pt-16 text-white shadow-xl transition-transform duration-300 lg:translate-x-0">
+        <div class="border-b border-white/[0.06] px-5 py-5">
+            <div class="flex items-center gap-3">
+                <div class="flex size-10 items-center justify-center rounded-md bg-white text-lg font-black text-gray-900 shadow">L</div>
+                <div>
+                    <p class="text-sm font-extrabold tracking-wide text-white">LEO AutoParts</p>
+                    <p class="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-300">Control financiero</p>
+                </div>
+            </div>
+        </div>
 
-		<a href="{{ route('catalog') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path d="M8.25 10.875a2.625 2.625 0 1 1 5.25 0 2.625 2.625 0 0 1-5.25 0Z" />
-				<path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-1.125 4.5a4.125 4.125 0 1 0 2.338 7.524l2.007 2.006a.75.75 0 1 0 1.06-1.06l-2.006-2.007a4.125 4.125 0 0 0-3.399-6.463Z" clip-rule="evenodd" />
-			</svg>
-			{{ __('Catalog') }}
-		</a>
+        <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-5">
+            <section>
+                <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Panorama</p>
+                <x-finance-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+                    <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13h6V4H4v9Zm0 7h6v-3H4v3Zm10 0h6v-9h-6v9Zm0-16v3h6V4h-6Z"/></svg></x-slot>
+                    Dashboard financiero
+                </x-finance-nav-link>
+            </section>
 
-		<a href="{{ route('customers') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path fill-rule="evenodd" d="M8.25 6.75a3.75 3.75 0 1 1 7.5 0 3.75 3.75 0 0 1-7.5 0ZM15.75 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM2.25 9.75a3 3 0 1 1 6 0 3 3 0 0 1-6 0ZM6.31 15.117A6.745 6.745 0 0 1 12 12a6.745 6.745 0 0 1 6.709 7.498.75.75 0 0 1-.372.568A12.696 12.696 0 0 1 12 21.75c-2.305 0-4.47-.612-6.337-1.684a.75.75 0 0 1-.372-.568 6.787 6.787 0 0 1 1.019-4.38Z" clip-rule="evenodd" />
-				<path d="M5.082 14.254a8.287 8.287 0 0 0-1.308 5.135 9.687 9.687 0 0 1-1.764-.44l-.115-.04a.563.563 0 0 1-.373-.487l-.01-.121a3.75 3.75 0 0 1 3.57-4.047ZM20.226 19.389a8.287 8.287 0 0 0-1.308-5.135 3.75 3.75 0 0 1 3.57 4.047l-.01.121a.563.563 0 0 1-.373.486l-.115.04c-.567.2-1.156.349-1.764.441Z" />
-			</svg>
-			{{ __('Customers') }}
-		</a>
+            @if(auth()->user()?->hasAnyRole(['Administrador', 'Vendedor']))
+                <section class="space-y-1">
+                    <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Operación</p>
+                    <x-finance-nav-link :href="route('cash')" :active="request()->routeIs('cash')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12h5M7 6V4h10v2"/></svg></x-slot>
+                        Caja y arqueo
+                    </x-finance-nav-link>
+                    <x-finance-nav-link :href="route('invoicing')" :active="request()->routeIs('invoicing')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg></x-slot>
+                        Nueva facturación
+                    </x-finance-nav-link>
+                    <x-finance-nav-link :href="route('customers')" :active="request()->routeIs('customers')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM22 21v-2a4 4 0 0 0-3-3.87"/></svg></x-slot>
+                        Clientes
+                    </x-finance-nav-link>
+                </section>
+            @endif
 
-		<a href="{{ route('invoicing') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path fill-rule="evenodd" d="M3.75 3.375c0-1.036.84-1.875 1.875-1.875H9a3.75 3.75 0 0 1 3.75 3.75v1.875c0 1.036.84 1.875 1.875 1.875H16.5a3.75 3.75 0 0 1 3.75 3.75v7.875c0 1.035-.84 1.875-1.875 1.875H5.625a1.875 1.875 0 0 1-1.875-1.875V3.375Zm10.5 1.875a5.23 5.23 0 0 0-1.279-3.434 9.768 9.768 0 0 1 6.963 6.963A5.23 5.23 0 0 0 16.5 7.5h-1.875a.375.375 0 0 1-.375-.375V5.25ZM12 10.5a.75.75 0 0 1 .75.75v.028a9.727 9.727 0 0 1 1.687.28.75.75 0 1 1-.374 1.452 8.207 8.207 0 0 0-1.313-.226v1.68l.969.332c.67.23 1.281.85 1.281 1.704 0 .158-.007.314-.02.468-.083.931-.83 1.582-1.669 1.695a9.776 9.776 0 0 1-.561.059v.028a.75.75 0 0 1-1.5 0v-.029a9.724 9.724 0 0 1-1.687-.278.75.75 0 0 1 .374-1.453c.425.11.864.186 1.313.226v-1.68l-.968-.332C9.612 14.974 9 14.354 9 13.5c0-.158.007-.314.02-.468.083-.931.831-1.582 1.67-1.694.185-.025.372-.045.56-.06v-.028a.75.75 0 0 1 .75-.75Zm-1.11 2.324c.119-.016.239-.03.36-.04v1.166l-.482-.165c-.208-.072-.268-.211-.268-.285 0-.113.005-.225.015-.336.013-.146.14-.309.374-.34Zm1.86 4.392V16.05l.482.165c.208.072.268.211.268.285 0 .113-.005.225-.015.336-.012.146-.14.309-.374.34-.12.016-.24.03-.361.04Z" clip-rule="evenodd" />
-			</svg>
-			{{ __('Invoicing') }}
-		</a>
+            @if(auth()->user()?->hasAnyRole(['Administrador', 'Contador']))
+                <section class="space-y-1">
+                    <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Control contable</p>
+                    <x-finance-nav-link :href="route('salesHistory')" :active="request()->routeIs('salesHistory')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 16l4-4 3 3 5-7"/></svg></x-slot>
+                        Libro de ventas
+                    </x-finance-nav-link>
+                    <x-finance-nav-link :href="route('inventory')" :active="request()->routeIs('inventory')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 12 9 5 9-5M3 16l9 5 9-5"/></svg></x-slot>
+                        Inventario y Kardex
+                    </x-finance-nav-link>
+                    <x-finance-nav-link :href="route('reports')" :active="request()->routeIs('reports')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg></x-slot>
+                        Informes y exportación
+                    </x-finance-nav-link>
+                    <x-finance-nav-link :href="route('suppliers')" :active="request()->routeIs('suppliers')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5z"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></svg></x-slot>
+                        Proveedores
+                    </x-finance-nav-link>
+                </section>
+            @endif
 
-		@if(auth()->user()?->hasAnyRole(['Administrador', 'Vendedor']))
-		<a href="{{ route('cash') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<span class="mx-4 flex size-6 items-center justify-center rounded-full border border-white text-sm font-bold">$</span>
-			Caja
-		</a>
-		@endif
+            <section class="space-y-1">
+                <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Catálogo</p>
+                <x-finance-nav-link :href="route('catalog')" :active="request()->routeIs('catalog')">
+                    <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></x-slot>
+                    Consulta de productos
+                </x-finance-nav-link>
+            </section>
 
-		<div class="border-t border-gray-600"></div> <!-- Separador -->
+            @if(auth()->user()?->hasRole('Administrador'))
+                <section class="space-y-1">
+                    <p class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Administración</p>
+                    <x-finance-nav-link :href="route('users')" :active="request()->routeIs('users')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></x-slot>
+                        Usuarios y roles
+                    </x-finance-nav-link>
+                    <x-finance-nav-link :href="route('configuration')" :active="request()->routeIs('configuration')">
+                        <x-slot name="icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.16.37.4.7.7.96.3.25.68.4 1.1.4h.1v4h-.1c-.42 0-.8.15-1.1.4-.3.26-.54.59-.7.96Z"/></svg></x-slot>
+                        Configuración
+                    </x-finance-nav-link>
+                </section>
+            @endif
+        </nav>
 
-		<a href="{{ route('salesHistory') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="size-6 mx-4">
-				<path d="M1.92.506a.5.5 0 0 1 .434.14L3 1.293l.646-.647a.5.5 0 0 1 .708 0L5 1.293l.646-.647a.5.5 0 0 1 .708 0L7 1.293l.646-.647a.5.5 0 0 1 .708 0L9 1.293l.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .801.13l.5 1A.5.5 0 0 1 15 2v12a.5.5 0 0 1-.053.224l-.5 1a.5.5 0 0 1-.8.13L13 14.707l-.646.647a.5.5 0 0 1-.708 0L11 14.707l-.646.647a.5.5 0 0 1-.708 0L9 14.707l-.646.647a.5.5 0 0 1-.708 0L7 14.707l-.646.647a.5.5 0 0 1-.708 0L5 14.707l-.646.647a.5.5 0 0 1-.708 0L3 14.707l-.646.647a.5.5 0 0 1-.801-.13l-.5-1A.5.5 0 0 1 1 14V2a.5.5 0 0 1 .053-.224l.5-1a.5.5 0 0 1 .367-.27m.217 1.338L2 2.118v11.764l.137.274.51-.51a.5.5 0 0 1 .707 0l.646.647.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.646.646.646-.646a.5.5 0 0 1 .708 0l.509.509.137-.274V2.118l-.137-.274-.51.51a.5.5 0 0 1-.707 0L12 1.707l-.646.647a.5.5 0 0 1-.708 0L10 1.707l-.646.647a.5.5 0 0 1-.708 0L8 1.707l-.646.647a.5.5 0 0 1-.708 0L6 1.707l-.646.647a.5.5 0 0 1-.708 0L4 1.707l-.646.647a.5.5 0 0 1-.708 0z"/>
-				<path d="M3 4.5a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 1 1 0 1h-6a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5m8-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m0 2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5"/>
-			</svg>
-			{{ __('Sales history') }}
-		</a>
-
-		<a href="{{ route('inventory') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<?xml version="1.0" encoding="UTF-8"?>
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<polygon points="12 4.93 16.93 2.46 12 0 7.07 2.46 12 4.93"/>
-				<polygon points="5 17.48 0 14.99 0 21.11 5 23.98 5 17.48"/>
-				<polygon points="19 23.98 24 21.11 24 14.99 19 17.48 19 23.98"/>
-				<g>
-				<polygon points="11 12.09 11 6.59 6 4.1 6 9.52 11 12.09"/>
-				<polygon points="4.89 11.2 .88 13.21 6 15.73 9.89 13.77 4.89 11.2"/>
-				</g>
-				<g>
-				<polygon points="18 9.52 18 4.1 13 6.59 13 12.08 18 9.52"/>
-				<polygon points="19.11 11.2 14.1 13.77 18 15.73 23.12 13.21 19.11 11.2"/>
-				</g>
-				<g>
-				<polygon points="11 15.48 7 17.43 7 23.93 11 21.68 11 15.48"/>
-				<polygon points="13 15.47 13 21.67 17 23.91 17 17.41 13 15.47"/>
-				</g>
-			</svg>
-			{{ __('Inventory') }}
-		</a>
-		<a href="{{ route('suppliers') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<?xml version="1.0" encoding="UTF-8"?>
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path d="m16,8h-2V3h2v5Zm7-2v10H7V6c0-1.654,1.346-3,3-3h2v7h6V3h2c1.654,0,3,1.346,3,3Zm1,12H6c-.551,0-1-.448-1-1V3C5,1.346,3.654,0,2,0H0V2h2c.551,0,1,.448,1,1v14c0,1.654,1.346,3,3,3v1c0,1.654,1.346,3,3,3s3-1.346,3-3v-1h5v1c0,1.654,1.346,3,3,3s3-1.346,3-3v-1h1v-2Z"/>
-			</svg>                    
-			{{ __('Suppliers') }}
-		</a>
-		<a href="{{ route('reports') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path fill-rule="evenodd" d="M2.25 2.25a.75.75 0 0 0 0 1.5H3v10.5a3 3 0 0 0 3 3h1.21l-1.172 3.513a.75.75 0 0 0 1.424.474l.329-.987h8.418l.33.987a.75.75 0 0 0 1.422-.474l-1.17-3.513H18a3 3 0 0 0 3-3V3.75h.75a.75.75 0 0 0 0-1.5H2.25Zm6.54 15h6.42l.5 1.5H8.29l.5-1.5Zm8.085-8.995a.75.75 0 1 0-.75-1.299 12.81 12.81 0 0 0-3.558 3.05L11.03 8.47a.75.75 0 0 0-1.06 0l-3 3a.75.75 0 1 0 1.06 1.06l2.47-2.47 1.617 1.618a.75.75 0 0 0 1.146-.102 11.312 11.312 0 0 1 3.612-3.321Z" clip-rule="evenodd" />
-			</svg>
-			{{ __('Reports') }}
-		</a>
-
-		<div class="border-t border-gray-600"></div> <!-- Separador -->
-
-		<a href="{{ route('users') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path fill-rule="evenodd" d="M18.685 19.097A9.723 9.723 0 0 0 21.75 12c0-5.385-4.365-9.75-9.75-9.75S2.25 6.615 2.25 12a9.723 9.723 0 0 0 3.065 7.097A9.716 9.716 0 0 0 12 21.75a9.716 9.716 0 0 0 6.685-2.653Zm-12.54-1.285A7.486 7.486 0 0 1 12 15a7.486 7.486 0 0 1 5.855 2.812A8.224 8.224 0 0 1 12 20.25a8.224 8.224 0 0 1-5.855-2.438ZM15.75 9a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" clip-rule="evenodd" />
-			</svg>
-			{{ __('Users') }}
-		</a>
-		<a href="{{ route('configuration') }}" class="flex items-center py-2 px-2 hover:bg-gray-700 rounded">
-			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="size-6 mx-4">
-				<path fill-rule="evenodd" d="M11.078 2.25c-.917 0-1.699.663-1.85 1.567L9.05 4.889c-.02.12-.115.26-.297.348a7.493 7.493 0 0 0-.986.57c-.166.115-.334.126-.45.083L6.3 5.508a1.875 1.875 0 0 0-2.282.819l-.922 1.597a1.875 1.875 0 0 0 .432 2.385l.84.692c.095.078.17.229.154.43a7.598 7.598 0 0 0 0 1.139c.015.2-.059.352-.153.43l-.841.692a1.875 1.875 0 0 0-.432 2.385l.922 1.597a1.875 1.875 0 0 0 2.282.818l1.019-.382c.115-.043.283-.031.45.082.312.214.641.405.985.57.182.088.277.228.297.35l.178 1.071c.151.904.933 1.567 1.85 1.567h1.844c.916 0 1.699-.663 1.85-1.567l.178-1.072c.02-.12.114-.26.297-.349.344-.165.673-.356.985-.57.167-.114.335-.125.45-.082l1.02.382a1.875 1.875 0 0 0 2.28-.819l.923-1.597a1.875 1.875 0 0 0-.432-2.385l-.84-.692c-.095-.078-.17-.229-.154-.43a7.614 7.614 0 0 0 0-1.139c-.016-.2.059-.352.153-.43l.84-.692c.708-.582.891-1.59.433-2.385l-.922-1.597a1.875 1.875 0 0 0-2.282-.818l-1.02.382c-.114.043-.282.031-.449-.083a7.49 7.49 0 0 0-.985-.57c-.183-.087-.277-.227-.297-.348l-.179-1.072a1.875 1.875 0 0 0-1.85-1.567h-1.843ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" clip-rule="evenodd" />
-			</svg>
-			{{ __('Configuration') }}
-		</a>
-	</nav>
-</aside>
+        <div class="border-t border-white/[0.06] p-4">
+            <div class="rounded-xl bg-white/[0.04] p-3">
+                <div class="flex items-center gap-2 text-xs font-semibold text-slate-300"><span class="size-2 rounded-full bg-emerald-400 shadow shadow-emerald-400/50"></span>Sistema operativo</div>
+                <p class="mt-1 text-[10px] text-slate-500">Ledger y auditoría activos</p>
+            </div>
+        </div>
+    </aside>
+</div>

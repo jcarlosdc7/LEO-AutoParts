@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\PaymentMethod;
+use App\Models\Refund;
 use App\Models\Sale;
 use App\Models\SaleReturnItem;
 use App\Services\ReturnService;
@@ -39,6 +40,10 @@ class SalesHistoryPanel extends Component
 
     public $refundMethods;
 
+    public string $search = '';
+
+    public string $statusFilter = 'all';
+
     protected $listeners = ['showDetails'];
 
     public $sortColumn = 'sale_date'; // Columna predeterminada para ordenar
@@ -58,6 +63,16 @@ class SalesHistoryPanel extends Component
             $this->sortColumn = $column;
             $this->sortDirection = 'asc';
         }
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->resetPage(pageName: 'pageSales');
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->resetPage(pageName: 'pageSales');
     }
 
     public function view(int $id): void
@@ -162,10 +177,31 @@ class SalesHistoryPanel extends Component
 
     public function render()
     {
-        $sales = Sale::with(['customer', 'user', 'paymentMethod', 'saleDetails', 'saleReturns.items'])
-            ->orderBy($this->sortColumn, $this->sortDirection)->paginate(10, pageName: 'pageSales');
+        $query = Sale::with(['customer', 'user', 'paymentMethod', 'saleDetails', 'saleReturns.items'])
+            ->when($this->search !== '', function ($query): void {
+                $term = trim($this->search);
+                $query->where(function ($query) use ($term): void {
+                    $query->where('id', $term)
+                        ->orWhereHas('customer', fn ($customerQuery) => $customerQuery
+                            ->where('name', 'like', '%'.$term.'%')
+                            ->orWhere('dni_ruc', 'like', '%'.$term.'%'));
+                });
+            })
+            ->when($this->statusFilter === 'completed', fn ($query) => $query->where('status', 'completed')->whereDoesntHave('saleReturns', fn ($returns) => $returns->where('status', 'completed')))
+            ->when($this->statusFilter === 'returned', fn ($query) => $query->whereHas('saleReturns', fn ($returns) => $returns->where('status', 'completed')))
+            ->when($this->statusFilter === 'voided', fn ($query) => $query->where('status', 'voided'));
 
-        return view('livewire.lwSalesHistory.sales-history-panel', compact('sales'));
+        $sales = $query->orderBy($this->sortColumn, $this->sortDirection)->paginate(12, pageName: 'pageSales');
+        $grossSales = (float) Sale::where('status', 'completed')->sum('total');
+        $refunded = (float) Refund::where('status', 'completed')->sum('amount');
+
+        return view('livewire.lwSalesHistory.sales-history-panel', [
+            'sales' => $sales,
+            'grossSales' => $grossSales,
+            'refunded' => $refunded,
+            'netSales' => $grossSales - $refunded,
+            'voidedCount' => Sale::where('status', 'voided')->count(),
+        ]);
     }
 
     public function returnLineTotal(array $item): string

@@ -107,7 +107,7 @@ class InvoicingPanel extends Component
         // CLIENTES
         $this->customer = new Customer;
         $this->customer_types = CustomerType::all();
-        $this->customers = Customer::where('is_active', true)->get();
+        $this->customers = Customer::with('customerType')->where('is_active', true)->orderBy('name')->get();
         $this->paymentMethods = PaymentMethod::query()
             ->where('is_active', true)
             ->orderBy('name')
@@ -126,21 +126,27 @@ class InvoicingPanel extends Component
     public function render()
     {
         // PRODUCTOS
+        $query = Product::query()
+            ->with(['supplier', 'category'])
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->limit(100);
+
         switch ($this->searchMode) {
             case 'Nombre':
-                $products = Product::where('is_active', true)->where('name', 'like', '%'.$this->searching.'%')->get();
+                $products = $query->where('name', 'like', '%'.$this->searching.'%')->get();
                 break;
 
             case 'Código':
-                $products = Product::where('is_active', true)->where('code', 'like', '%'.$this->searching.'%')->get();
+                $products = $query->where('code', 'like', '%'.$this->searching.'%')->get();
                 break;
 
             case 'Marca':
-                $products = Product::where('is_active', true)->where('brand', 'like', '%'.$this->searching.'%')->get();
+                $products = $query->where('brand', 'like', '%'.$this->searching.'%')->get();
                 break;
 
             default:
-                $products = Product::where('is_active', true)->get();
+                $products = $query->get();
                 break;
         }
 

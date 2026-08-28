@@ -21,7 +21,7 @@ class ReportsPanel extends Component
 
     public function mount()
     {
-        $this->categories = Category::all();
+        $this->categories = Category::orderBy('name')->get();
     }
 
     public function render()
