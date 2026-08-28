@@ -37,7 +37,7 @@ Route::middleware(['auth', 'verified', EnsureActiveUser::class])->group(function
     });
 
     Route::middleware(RoleMiddleware::class.':Administrador,Vendedor')->group(function () {
-        Route::get('cash', CashPanel::class)->name('cash')->lazy();
+        Route::get('cash', CashPanel::class)->name('cash');
         Route::get('customers', CustomersPanel::class)->name('customers')->lazy();
         Route::get('invoicing', InvoicingPanel::class)->name('invoicing')->lazy();
     });
