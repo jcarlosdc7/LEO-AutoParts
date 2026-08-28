@@ -16,6 +16,7 @@ use App\Models\SalePayment;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\InventoryService;
 use App\Services\SaleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -48,6 +49,7 @@ function saleFixture(bool $openCash = true): array
         'supplier_id' => $supplier->id, 'category_id' => $category->id,
         'stock' => 5, 'min_stock' => 1, 'price' => 25.50, 'is_active' => true,
     ]);
+    app(InventoryService::class)->initialize($product, 5);
     $payment = PaymentMethod::create([
         'code' => 'CASH',
         'name' => 'Efectivo',
@@ -125,7 +127,8 @@ test('an administrator voids a sale with compensating stock and cash movements',
         ->and(Sale::count())->toBe(1)
         ->and(SaleDetail::count())->toBe(1)
         ->and(SalePayment::count())->toBe(1)
-        ->and(StockMovement::count())->toBe(2)
+        ->and(StockMovement::count())->toBe(3)
+        ->and((int) StockMovement::sum('quantity'))->toBe(5)
         ->and(CashMovement::count())->toBe(2)
         ->and(AuditLog::where('event', 'sale.voided')->where('user_id', $administrator->id)->count())->toBe(1);
 

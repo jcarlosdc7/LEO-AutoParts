@@ -13,7 +13,6 @@ use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
-use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,6 +20,8 @@ use Illuminate\Validation\ValidationException;
 
 class ReturnService
 {
+    public function __construct(private readonly InventoryService $inventory) {}
+
     public function process(int|Sale $sale, array $items, int $refundMethodId, string $reason, User $actor, string $operationId, ?string $reference = null): SaleReturn
     {
         $this->authorize($actor);
@@ -146,16 +147,18 @@ class ReturnService
                     'quantity' => $item['quantity'], 'unit_price' => $detail->price, 'refund_amount' => $lineTotal,
                     'condition' => $item['condition'], 'restock' => $item['restock'], 'reason' => $reason,
                 ]);
-                if ($item['restock']) {
-                    $product = $products[$detail->product_id];
-                    $before = $product->stock;
-                    $product->increment('stock', $item['quantity']);
-                    StockMovement::create([
-                        'product_id' => $product->id, 'user_id' => $actor->id, 'type' => 'customer_return',
-                        'quantity' => $item['quantity'], 'stock_before' => $before, 'stock_after' => $before + $item['quantity'],
-                        'reference_type' => SaleReturn::class, 'reference_id' => $saleReturn->id, 'notes' => $reason,
-                    ]);
-                }
+            }
+
+            $restocked = $saleReturn->items->where('restock', true)->groupBy('product_id');
+            foreach ($restocked as $productId => $returnItems) {
+                $this->inventory->restore(
+                    $products[$productId],
+                    (int) $returnItems->sum('quantity'),
+                    InventoryService::CUSTOMER_RETURN,
+                    $actor,
+                    $saleReturn,
+                    $reason,
+                );
             }
 
             $originalPayment = $lockedSale->salePayments()->where('payment_method_id', $paymentMethod->id)->first()

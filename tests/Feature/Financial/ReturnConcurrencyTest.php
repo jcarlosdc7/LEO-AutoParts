@@ -1,5 +1,7 @@
 <?php
 
+namespace Tests\Feature\Financial;
+
 use App\Models\CashRegister;
 use App\Models\CashSession;
 use App\Models\Category;
@@ -15,12 +17,15 @@ use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\InventoryService;
 use App\Services\ReturnService;
 use App\Services\SaleService;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Tests\TestCase;
+use Throwable;
 
 function concurrentReturnFixture(): array
 {
@@ -59,6 +64,7 @@ function concurrentReturnFixture(): array
         'price' => '10.10',
         'is_active' => true,
     ]);
+    app(InventoryService::class)->initialize($product, 10);
     $cash = PaymentMethod::create([
         'code' => 'CASH',
         'name' => 'Efectivo',

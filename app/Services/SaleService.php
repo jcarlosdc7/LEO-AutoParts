@@ -9,13 +9,14 @@ use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SalePayment;
-use App\Models\StockMovement;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SaleService
 {
+    public function __construct(private readonly InventoryService $inventory) {}
+
     public function create(array $cart, int $customerId, int $paymentMethodId, ?float $receivedAmount, User $user): Sale
     {
         if (! $user->hasAnyRole(['Administrador', 'Vendedor'])) {
@@ -27,6 +28,37 @@ class SaleService
         }
 
         return DB::transaction(function () use ($cart, $customerId, $paymentMethodId, $receivedAmount, $user) {
+            $normalized = collect($cart)->map(function (array $item) {
+                $quantity = filter_var($item['quantity'] ?? null, FILTER_VALIDATE_INT);
+                if (! $quantity || $quantity < 1) {
+                    throw ValidationException::withMessages(['invoice' => 'Las cantidades deben ser números enteros positivos.']);
+                }
+
+                return ['id' => (int) ($item['id'] ?? 0), 'quantity' => $quantity];
+            })->groupBy('id')->map(fn ($items) => $items->sum('quantity'));
+
+            $products = Product::query()
+                ->whereIn('id', $normalized->keys())
+                ->where('is_active', true)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            if ($products->count() !== $normalized->count()) {
+                throw ValidationException::withMessages(['invoice' => 'Uno o más productos ya no están disponibles.']);
+            }
+
+            $total = 0.0;
+            foreach ($normalized as $productId => $quantity) {
+                $product = $products[$productId];
+                if ($product->stock < $quantity) {
+                    throw ValidationException::withMessages(['invoice' => "Stock insuficiente para {$product->name}."]);
+                }
+                $total += round((float) $product->price * $quantity, 2);
+            }
+            $total = round($total, 2);
+
             $paymentMethod = PaymentMethod::query()
                 ->whereKey($paymentMethodId)
                 ->where('is_active', true)
@@ -50,36 +82,6 @@ class SaleService
                 throw ValidationException::withMessages(['cash' => 'Debe abrir una caja antes de registrar ventas.']);
             }
 
-            $normalized = collect($cart)->map(function (array $item) {
-                $quantity = filter_var($item['quantity'] ?? null, FILTER_VALIDATE_INT);
-                if (! $quantity || $quantity < 1) {
-                    throw ValidationException::withMessages(['invoice' => 'Las cantidades deben ser números enteros positivos.']);
-                }
-
-                return ['id' => (int) ($item['id'] ?? 0), 'quantity' => $quantity];
-            })->groupBy('id')->map(fn ($items) => $items->sum('quantity'));
-
-            $products = Product::query()
-                ->whereIn('id', $normalized->keys())
-                ->where('is_active', true)
-                ->lockForUpdate()
-                ->get()
-                ->keyBy('id');
-
-            if ($products->count() !== $normalized->count()) {
-                throw ValidationException::withMessages(['invoice' => 'Uno o más productos ya no están disponibles.']);
-            }
-
-            $total = 0.0;
-            foreach ($normalized as $productId => $quantity) {
-                $product = $products[$productId];
-                if ($product->stock < $quantity) {
-                    throw ValidationException::withMessages(['invoice' => "Stock insuficiente para {$product->name}."]);
-                }
-                $total += round((float) $product->price * $quantity, 2);
-            }
-            $total = round($total, 2);
-
             if ($paymentMethod->affects_cash_drawer && ($receivedAmount === null || $receivedAmount < $total)) {
                 throw ValidationException::withMessages(['amount' => 'El efectivo recibido debe cubrir el total.']);
             }
@@ -101,7 +103,6 @@ class SaleService
 
             foreach ($normalized as $productId => $quantity) {
                 $product = $products[$productId];
-                $before = $product->stock;
                 $lineTotal = round((float) $product->price * $quantity, 2);
 
                 SaleDetail::create([
@@ -112,17 +113,14 @@ class SaleService
                     'total' => $lineTotal,
                 ]);
 
-                $product->decrement('stock', $quantity);
-                StockMovement::create([
-                    'product_id' => $product->id,
-                    'user_id' => $user->id,
-                    'type' => 'sale',
-                    'quantity' => -$quantity,
-                    'stock_before' => $before,
-                    'stock_after' => $before - $quantity,
-                    'reference_type' => Sale::class,
-                    'reference_id' => $sale->id,
-                ]);
+                $this->inventory->consume(
+                    $product,
+                    $quantity,
+                    InventoryService::SALE,
+                    $user,
+                    $sale,
+                    "Venta #{$sale->id}",
+                );
             }
 
             SalePayment::create([
@@ -174,23 +172,6 @@ class SaleService
                 ]);
             }
 
-            $cashMovement = CashMovement::query()
-                ->where('reference_type', Sale::class)
-                ->where('reference_id', $lockedSale->id)
-                ->where('type', 'sale')
-                ->lockForUpdate()
-                ->first();
-
-            $cashSession = null;
-            if ($cashMovement) {
-                $cashSession = CashSession::query()->lockForUpdate()->findOrFail($cashMovement->cash_session_id);
-                if ($cashSession->status !== 'open') {
-                    throw ValidationException::withMessages([
-                        'voidReason' => 'La caja original ya fue cerrada. Registre una devolución y reembolso en lugar de anular.',
-                    ]);
-                }
-            }
-
             $details = SaleDetail::query()
                 ->where('sale_id', $lockedSale->id)
                 ->orderBy('product_id')
@@ -210,22 +191,32 @@ class SaleService
                 ]);
             }
 
-            foreach ($details as $detail) {
-                $product = $products[$detail->product_id];
-                $before = $product->stock;
-                $product->increment('stock', $detail->quantity);
+            $cashMovement = CashMovement::query()
+                ->where('reference_type', Sale::class)
+                ->where('reference_id', $lockedSale->id)
+                ->where('type', 'sale')
+                ->lockForUpdate()
+                ->first();
 
-                StockMovement::create([
-                    'product_id' => $product->id,
-                    'user_id' => $actor->id,
-                    'type' => 'sale_void',
-                    'quantity' => $detail->quantity,
-                    'stock_before' => $before,
-                    'stock_after' => $before + $detail->quantity,
-                    'reference_type' => Sale::class,
-                    'reference_id' => $lockedSale->id,
-                    'notes' => $reason,
-                ]);
+            $cashSession = null;
+            if ($cashMovement) {
+                $cashSession = CashSession::query()->lockForUpdate()->findOrFail($cashMovement->cash_session_id);
+                if ($cashSession->status !== 'open') {
+                    throw ValidationException::withMessages([
+                        'voidReason' => 'La caja original ya fue cerrada. Registre una devolución y reembolso en lugar de anular.',
+                    ]);
+                }
+            }
+
+            foreach ($details->groupBy('product_id') as $productId => $productDetails) {
+                $this->inventory->restore(
+                    $products[$productId],
+                    (int) $productDetails->sum('quantity'),
+                    InventoryService::SALE_VOID,
+                    $actor,
+                    $lockedSale,
+                    $reason,
+                );
             }
 
             if ($cashMovement && $cashSession) {

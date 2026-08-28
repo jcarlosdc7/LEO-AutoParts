@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Product;
+use App\Services\InventoryService;
 use Illuminate\Database\Seeder;
 
 class ProductSeeder extends Seeder
@@ -46,9 +47,14 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($productsData as $productData) {
+            $openingStock = (int) $productData['stock'];
+            $imagePath = $productData['image_path'];
+            unset($productData['stock'], $productData['image_path']);
             $product = new Product; // Crea una nueva instancia del modelo
             $product->fill($productData); // Llena el modelo con los datos del array
+            $product->image_path = $imagePath;
             $product->save(); // Guarda el modelo en la base de datos
+            app(InventoryService::class)->initialize($product, $openingStock);
         }
     }
 }

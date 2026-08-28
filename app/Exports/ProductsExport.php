@@ -26,7 +26,6 @@ class ProductsExport implements FromCollection, ShouldAutoSize, WithCustomStartC
 
     public function collection()
     {
-        // dd($this->filter);
         $query = Product::with('supplier', 'category');
 
         if ($this->filter != 0) {

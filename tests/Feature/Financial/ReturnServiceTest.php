@@ -17,6 +17,7 @@ use App\Models\SaleReturnItem;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\InventoryService;
 use App\Services\ReturnService;
 use App\Services\SaleService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -44,6 +45,7 @@ function returnFixture(bool $adminCash = true, string $adminOpening = '1000.00')
     $supplier = Supplier::create(['name' => 'Proveedor', 'is_active' => true]);
     $category = Category::create(['name' => 'Categoría']);
     $product = Product::create(['code' => 'RET-P1', 'name' => 'Pieza', 'brand' => 'Marca', 'model' => 'M1', 'supplier_id' => $supplier->id, 'category_id' => $category->id, 'stock' => 10, 'min_stock' => 1, 'price' => '10.10', 'is_active' => true]);
+    app(InventoryService::class)->initialize($product, 10);
     $cash = PaymentMethod::create(['code' => 'CASH', 'name' => 'Efectivo', 'affects_cash_drawer' => true, 'is_active' => true]);
     $transfer = PaymentMethod::create(['code' => 'TRANSFER', 'name' => 'Transferencia', 'requires_reference' => true, 'affects_cash_drawer' => false, 'is_active' => true]);
     $sale = app(SaleService::class)->create([['id' => $product->id, 'quantity' => 5]], $customer->id, $cash->id, 60, $vendor);
