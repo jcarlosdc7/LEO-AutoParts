@@ -9,6 +9,8 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Services\SaleService;
+use App\Support\Decimal;
+use App\Support\Money;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Support\Facades\Auth;
@@ -95,10 +97,10 @@ class InvoicingPanel extends Component
     // TABLA DE FACTURA (Lista de productos agregados)
     public $invoiceTable = [];
 
-    public $totalFinal = 0;
+    public string $totalFinal = '0.00';
 
     // PARA CALCULAR VUELTO
-    public $change = 0;
+    public string $change = '0.00';
 
     public $amount = null;
 
@@ -204,7 +206,10 @@ class InvoicingPanel extends Component
         if ($index !== false) {
             // SI YA EXISTE, AUMENTAR LA CANTIDAD
             $this->invoiceTable[$index]['quantity'] += $this->productCount;
-            $this->invoiceTable[$index]['subtotal'] = $this->invoiceTable[$index]['price'] * $this->invoiceTable[$index]['quantity'];
+            $this->invoiceTable[$index]['subtotal'] = Money::fromUnitPrice(
+                (string) $this->invoiceTable[$index]['price'],
+                (int) $this->invoiceTable[$index]['quantity'],
+            )->amount();
         } else {
             // SI NO EXISTE, AGREGARLO
             $this->invoiceTable[] = [
@@ -213,11 +218,11 @@ class InvoicingPanel extends Component
                 'code' => $newProduct->code,
                 'price' => $newProduct->price,
                 'quantity' => $this->productCount,
-                'subtotal' => $newProduct->price * $this->productCount,
+                'subtotal' => Money::fromUnitPrice((string) $newProduct->price, (int) $this->productCount)->amount(),
             ];
         }
 
-        $this->totalFinal = collect($this->invoiceTable)->sum('subtotal');
+        $this->recalculateTotal();
         $this->reset('productCount');
     }
 
@@ -225,17 +230,17 @@ class InvoicingPanel extends Component
     public function removeFromInvoice($id)
     {
         $this->invoiceTable = array_filter($this->invoiceTable, fn ($p) => $p['id'] !== $id);
-        $this->totalFinal = collect($this->invoiceTable)->sum('subtotal');
+        $this->recalculateTotal();
     }
 
     // LIMPIAR FACTURA
     public function clearInvoice()
     {
         $this->invoiceTable = [];
-        $this->totalFinal = 0;
+        $this->totalFinal = '0.00';
 
         $this->reset(['cId', 'cDniRuc', 'cName', 'cEmail', 'cPhone', 'cAddress', 'cCity', 'cType']);
-        $this->change = 0;
+        $this->change = '0.00';
         $this->amount = null;
     }
 
@@ -273,14 +278,14 @@ class InvoicingPanel extends Component
         $this->validate([
             'cId' => ['required', 'exists:customers,id'],
             'paymentMethod' => ['required', 'exists:payment_methods,id'],
-            'amount' => [$this->paymentAffectsCash ? 'required' : 'nullable', 'numeric', 'min:0'],
+            'amount' => [$this->paymentAffectsCash ? 'required' : 'nullable', 'regex:/^\d{1,14}(?:\.\d{1,2})?$/'],
         ]);
 
         $sale = $saleService->create(
             $this->invoiceTable,
             (int) $this->cId,
             (int) $this->paymentMethod,
-            $this->amount !== null ? (float) $this->amount : null,
+            $this->amount !== null ? (string) $this->amount : null,
             Auth::user(),
         );
 
@@ -301,10 +306,14 @@ class InvoicingPanel extends Component
 
     public function updatedAmount()
     {
-        if ($this->totalFinal < $this->amount && $this->amount != '') {
-            $this->change = $this->amount - $this->totalFinal;
-        } else {
-            $this->change = 0;
+        try {
+            $received = $this->amount === null || $this->amount === '' ? null : Money::parse((string) $this->amount);
+            $total = Money::parse($this->totalFinal);
+            $this->change = $received && $received->compare($total) > 0
+                ? $received->subtract($total)->amount()
+                : '0.00';
+        } catch (\InvalidArgumentException) {
+            $this->change = '0.00';
         }
     }
 
@@ -315,7 +324,30 @@ class InvoicingPanel extends Component
 
         if (! $this->paymentAffectsCash) {
             $this->amount = null;
-            $this->change = 0;
+            $this->change = '0.00';
         }
+    }
+
+    public function getHasSufficientPaymentProperty(): bool
+    {
+        if (! $this->paymentAffectsCash) {
+            return true;
+        }
+
+        try {
+            return $this->amount !== null
+                && $this->amount !== ''
+                && Money::parse((string) $this->amount)->compare(Money::parse($this->totalFinal)) >= 0;
+        } catch (\InvalidArgumentException) {
+            return false;
+        }
+    }
+
+    private function recalculateTotal(): void
+    {
+        $this->totalFinal = collect($this->invoiceTable)->reduce(
+            fn (string $total, array $item): string => Decimal::add($total, (string) $item['subtotal']),
+            '0.00',
+        );
     }
 }

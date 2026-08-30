@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Sale;
+use App\Support\Money;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -74,7 +75,7 @@ class SalesExport implements FromCollection, ShouldAutoSize, WithCustomStartCell
                 $detail->product->name,
                 $detail->quantity,
                 $detail->price,
-                $detail->quantity * $detail->price,
+                Money::fromUnitPrice((string) $detail->price, (int) $detail->quantity)->amount(),
             ];
         }
 

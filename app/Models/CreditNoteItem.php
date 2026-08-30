@@ -11,5 +11,5 @@ class CreditNoteItem extends Model
 
     protected $fillable = ['credit_note_id', 'sale_detail_id', 'description', 'quantity', 'unit_price', 'subtotal', 'tax', 'total'];
 
-    protected $casts = ['unit_price' => 'decimal:2', 'subtotal' => 'decimal:2', 'tax' => 'decimal:2', 'total' => 'decimal:2'];
+    protected $casts = ['unit_price' => 'decimal:4', 'subtotal' => 'decimal:2', 'tax' => 'decimal:2', 'total' => 'decimal:2'];
 }

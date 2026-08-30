@@ -42,13 +42,13 @@
 				<tr>
 					<td>{{ $detail->product->name }}</td>
 					<td class="right">{{ $detail->quantity }}</td>
-					<td class="right">${{ number_format($detail->price, 2) }}</td>
-					<td class="right">${{ number_format($detail->total, 2) }}</td>
+					<td class="right">${{ \App\Support\Decimal::format($detail->price, 2) }}</td>
+					<td class="right">${{ \App\Support\Decimal::format($detail->total, 2) }}</td>
 				</tr>
 			@endforeach
 		</tbody>
 	</table>
 	
-	<h3 class="total">Total: ${{ number_format($sale->total, 2) }}</h3>
+	<h3 class="total">Total: ${{ \App\Support\Decimal::format($sale->total, 2) }}</h3>
 </body>
 </html>

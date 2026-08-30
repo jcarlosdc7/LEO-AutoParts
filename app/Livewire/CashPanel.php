@@ -8,6 +8,8 @@ use App\Models\CashRegister;
 use App\Models\CashSession;
 use App\Models\User;
 use App\Services\CashService;
+use App\Support\Decimal;
+use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -183,9 +185,9 @@ class CashPanel extends Component
             'expected' => (string) $closed->expected_amount,
             'counted' => (string) $closed->closing_amount,
             'difference' => (string) $closed->difference,
-            'status' => bccomp((string) $closed->difference, '0.00', 2) === 0
+            'status' => Decimal::compare((string) $closed->difference, '0.00', 2) === 0
                 ? 'CUADRA'
-                : (bccomp((string) $closed->difference, '0.00', 2) < 0 ? 'FALTANTE' : 'SOBRANTE'),
+                : (Decimal::compare((string) $closed->difference, '0.00', 2) < 0 ? 'FALTANTE' : 'SOBRANTE'),
         ];
         $this->closingOperationId = (string) Str::uuid();
         $this->dispatch('close-modal', 'cash-closing');
@@ -230,8 +232,8 @@ class CashPanel extends Component
         $current = app(CashService::class)->expectedCash($session);
 
         return in_array($this->movementType, CashService::INFLOW_TYPES, true)
-            ? bcadd($current, $this->movementAmount, 2)
-            : bcsub($current, $this->movementAmount, 2);
+            ? Decimal::add($current, $this->movementAmount)
+            : Decimal::subtract($current, $this->movementAmount);
     }
 
     public function lineSubtotal(int $denominationId, string $context): string
@@ -243,7 +245,7 @@ class CashPanel extends Component
 
         return $quantity === false || $quantity < 0
             ? '0.00'
-            : bcmul($this->denominationValues[$denominationId] ?? '0.00', (string) $quantity, 2);
+            : Money::fromUnitPrice($this->denominationValues[$denominationId] ?? '0.00', $quantity)->amount();
     }
 
     public function render(CashService $cash)
@@ -344,7 +346,7 @@ class CashPanel extends Component
         foreach ($this->denominationValues as $id => $value) {
             $quantity = filter_var($counts[$id] ?? 0, FILTER_VALIDATE_INT);
             if ($quantity !== false && $quantity >= 0) {
-                $total = bcadd($total, bcmul($value, (string) $quantity, 2), 2);
+                $total = Decimal::add($total, Money::fromUnitPrice($value, $quantity)->amount());
             }
         }
 

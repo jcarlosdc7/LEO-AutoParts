@@ -11,7 +11,7 @@ class SaleReturnItem extends Model
 
     protected $fillable = ['sale_return_id', 'sale_detail_id', 'product_id', 'quantity', 'unit_price', 'refund_amount', 'condition', 'restock', 'reason'];
 
-    protected $casts = ['unit_price' => 'decimal:2', 'refund_amount' => 'decimal:2', 'restock' => 'boolean'];
+    protected $casts = ['unit_price' => 'decimal:4', 'refund_amount' => 'decimal:2', 'restock' => 'boolean'];
 
     public function saleReturn()
     {

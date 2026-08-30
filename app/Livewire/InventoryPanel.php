@@ -32,7 +32,7 @@ class InventoryPanel extends Component
         'product.supplier_id' => 'required|integer',
         'product.category_id' => 'required|integer',
         'product.min_stock' => 'required|integer|min:0|max:1000000',
-        'product.price' => 'required|decimal:0,2|min:0|max:99999999.99',
+        'product.price' => 'required|decimal:0,4|min:0|max:99999999.9999',
     ];
 
     public Product $product;
@@ -197,7 +197,7 @@ class InventoryPanel extends Component
             'product.supplier_id' => ['required', 'integer', Rule::exists('suppliers', 'id')->where('is_active', true)],
             'product.category_id' => ['required', 'integer', Rule::exists('categories', 'id')],
             'product.min_stock' => ['required', 'integer', 'min:0', 'max:1000000'],
-            'product.price' => ['required', 'decimal:0,2', 'min:0', 'max:99999999.99'],
+            'product.price' => ['required', 'decimal:0,4', 'min:0', 'max:99999999.9999'],
             'newImagePath' => ['nullable', 'image', 'mimes:jpg,jpeg,png', 'max:4096'],
         ]);
 

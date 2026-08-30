@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\CashSession;
 use App\Services\CashService;
+use App\Support\Decimal;
 use Illuminate\Console\Command;
 
 class ReconcileCash extends Command
@@ -24,20 +25,20 @@ class ReconcileCash extends Command
         $query->chunkById(200, function ($sessions) use ($cash, &$checked, &$drifts): void {
             foreach ($sessions as $session) {
                 $checked++;
-                if ($session->openingCount && bccomp((string) $session->opening_amount, (string) $session->openingCount->total, 2) !== 0) {
+                if ($session->openingCount && Decimal::compare((string) $session->opening_amount, (string) $session->openingCount->total, 2) !== 0) {
                     $drifts[] = [$session->id, 'OPENING_COUNT', $session->opening_amount, $session->openingCount->total];
                 }
 
                 $reconstructed = $cash->expectedCash($session);
                 if ($session->status === 'closed') {
-                    if (bccomp((string) $session->expected_amount, $reconstructed, 2) !== 0) {
+                    if (Decimal::compare((string) $session->expected_amount, $reconstructed, 2) !== 0) {
                         $drifts[] = [$session->id, 'EXPECTED_CASH', $session->expected_amount, $reconstructed];
                     }
-                    if ($session->closingCount && bccomp((string) $session->closing_amount, (string) $session->closingCount->total, 2) !== 0) {
+                    if ($session->closingCount && Decimal::compare((string) $session->closing_amount, (string) $session->closingCount->total, 2) !== 0) {
                         $drifts[] = [$session->id, 'CLOSING_COUNT', $session->closing_amount, $session->closingCount->total];
                     }
-                    $difference = bcsub((string) $session->closing_amount, (string) $session->expected_amount, 2);
-                    if (bccomp((string) $session->difference, $difference, 2) !== 0) {
+                    $difference = Decimal::subtract((string) $session->closing_amount, (string) $session->expected_amount);
+                    if (Decimal::compare((string) $session->difference, $difference, 2) !== 0) {
                         $drifts[] = [$session->id, 'DIFFERENCE', $session->difference, $difference];
                     }
                 }

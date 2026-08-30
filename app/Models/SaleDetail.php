@@ -13,6 +13,8 @@ class SaleDetail extends Model
 
     protected $fillable = ['sale_id', 'product_id', 'quantity', 'price', 'total'];
 
+    protected $casts = ['price' => 'decimal:4', 'total' => 'decimal:2'];
+
     public function sale()
     {
         return $this->belongsTo(Sale::class);

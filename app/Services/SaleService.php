@@ -10,8 +10,10 @@ use App\Models\Sale;
 use App\Models\SaleDetail;
 use App\Models\SalePayment;
 use App\Models\User;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class SaleService
 {
@@ -20,7 +22,7 @@ class SaleService
         private readonly CashService $cash,
     ) {}
 
-    public function create(array $cart, int $customerId, int $paymentMethodId, ?float $receivedAmount, User $user): Sale
+    public function create(array $cart, int $customerId, int $paymentMethodId, string|int|null $receivedAmount, User $user): Sale
     {
         if (! $user->is_active || ! $user->hasAnyRole(['Administrador', 'Vendedor'])) {
             abort(403, 'No tiene permiso para registrar ventas.');
@@ -52,15 +54,16 @@ class SaleService
                 throw ValidationException::withMessages(['invoice' => 'Uno o más productos ya no están disponibles.']);
             }
 
-            $total = 0.0;
+            $total = Money::zero();
+            $lineTotals = [];
             foreach ($normalized as $productId => $quantity) {
                 $product = $products[$productId];
                 if ($product->stock < $quantity) {
                     throw ValidationException::withMessages(['invoice' => "Stock insuficiente para {$product->name}."]);
                 }
-                $total += round((float) $product->price * $quantity, 2);
+                $lineTotals[$productId] = Money::fromUnitPrice((string) $product->price, (int) $quantity);
+                $total = $total->add($lineTotals[$productId]);
             }
-            $total = round($total, 2);
 
             $paymentMethod = PaymentMethod::query()
                 ->whereKey($paymentMethodId)
@@ -80,20 +83,25 @@ class SaleService
                 throw ValidationException::withMessages(['cash' => 'Debe abrir una caja antes de registrar ventas.']);
             }
 
-            if ($paymentMethod->affects_cash_drawer && ($receivedAmount === null || $receivedAmount < $total)) {
+            try {
+                $received = $paymentMethod->affects_cash_drawer
+                    ? ($receivedAmount === null ? null : Money::parse($receivedAmount))
+                    : $total;
+            } catch (InvalidArgumentException) {
+                throw ValidationException::withMessages(['amount' => 'El monto recibido debe ser un decimal válido con máximo dos decimales.']);
+            }
+            if ($received === null || $received->compare($total) < 0) {
                 throw ValidationException::withMessages(['amount' => 'El efectivo recibido debe cubrir el total.']);
             }
-
-            $received = $paymentMethod->affects_cash_drawer ? round((float) $receivedAmount, 2) : $total;
-            $change = $paymentMethod->affects_cash_drawer ? round($received - $total, 2) : 0.0;
+            $change = $paymentMethod->affects_cash_drawer ? $received->subtract($total) : Money::zero();
 
             $sale = Sale::create([
                 'customer_id' => $customerId,
                 'user_id' => $user->id,
                 'cash_session_id' => $session?->id,
-                'total' => $total,
-                'amount' => $received,
-                'change' => $change,
+                'total' => $total->amount(),
+                'amount' => $received->amount(),
+                'change' => $change->amount(),
                 'sale_date' => now(),
                 'payment_method_id' => $paymentMethodId,
                 'status' => 'completed',
@@ -101,14 +109,12 @@ class SaleService
 
             foreach ($normalized as $productId => $quantity) {
                 $product = $products[$productId];
-                $lineTotal = round((float) $product->price * $quantity, 2);
-
                 SaleDetail::create([
                     'sale_id' => $sale->id,
                     'product_id' => $product->id,
                     'quantity' => $quantity,
                     'price' => $product->price,
-                    'total' => $lineTotal,
+                    'total' => $lineTotals[$productId]->amount(),
                 ]);
 
                 $this->inventory->consume(
@@ -125,9 +131,9 @@ class SaleService
                 'sale_id' => $sale->id,
                 'payment_method_id' => $paymentMethodId,
                 'cash_session_id' => $session?->id,
-                'amount' => $total,
-                'received_amount' => $received,
-                'change_amount' => $change,
+                'amount' => $total->amount(),
+                'received_amount' => $received->amount(),
+                'change_amount' => $change->amount(),
             ]);
 
             if ($session && $paymentMethod->affects_cash_drawer) {
@@ -135,7 +141,7 @@ class SaleService
                     'cash_session_id' => $session->id,
                     'user_id' => $user->id,
                     'type' => 'sale',
-                    'amount' => $total,
+                    'amount' => $total->amount(),
                     'reason' => "Venta #{$sale->id}",
                     'reference_type' => Sale::class,
                     'reference_id' => $sale->id,

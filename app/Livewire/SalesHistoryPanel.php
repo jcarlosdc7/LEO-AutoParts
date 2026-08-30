@@ -8,6 +8,8 @@ use App\Models\Sale;
 use App\Models\SaleReturnItem;
 use App\Services\ReturnService;
 use App\Services\SaleService;
+use App\Support\Decimal;
+use App\Support\Money;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -192,14 +194,14 @@ class SalesHistoryPanel extends Component
             ->when($this->statusFilter === 'voided', fn ($query) => $query->where('status', 'voided'));
 
         $sales = $query->orderBy($this->sortColumn, $this->sortDirection)->paginate(12, pageName: 'pageSales');
-        $grossSales = (float) Sale::where('status', 'completed')->sum('total');
-        $refunded = (float) Refund::where('status', 'completed')->sum('amount');
+        $grossSales = Decimal::round((string) Sale::where('status', 'completed')->sum('total'));
+        $refunded = Decimal::round((string) Refund::where('status', 'completed')->sum('amount'));
 
         return view('livewire.lwSalesHistory.sales-history-panel', [
             'sales' => $sales,
             'grossSales' => $grossSales,
             'refunded' => $refunded,
-            'netSales' => $grossSales - $refunded,
+            'netSales' => Decimal::subtract($grossSales, $refunded),
             'voidedCount' => Sale::where('status', 'voided')->count(),
         ]);
     }
@@ -209,14 +211,14 @@ class SalesHistoryPanel extends Component
         $quantity = filter_var($item['quantity'] ?? 0, FILTER_VALIDATE_INT);
 
         return $quantity && $quantity > 0
-            ? bcmul((string) ($item['unit_price'] ?? '0.00'), (string) $quantity, 2)
+            ? Money::fromUnitPrice((string) ($item['unit_price'] ?? '0.0000'), $quantity)->amount()
             : '0.00';
     }
 
     public function returnRefundTotal(): string
     {
         return collect($this->returnItems)->reduce(
-            fn (string $total, array $item): string => bcadd($total, $this->returnLineTotal($item), 2),
+            fn (string $total, array $item): string => Decimal::add($total, $this->returnLineTotal($item)),
             '0.00',
         );
     }

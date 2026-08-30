@@ -51,9 +51,9 @@
 								<tr class="h-6 hover:bg-gray-100">
 									<td class="h-6 px-2 border border-gray-300 text-center text-sm text-gray-700 truncate">{{ $item['code'] }}</td>
 									<td class="h-6 px-2 border border-gray-300 text-left text-sm text-gray-700 truncate">{{ $item['name'] }}</td>
-									<td class="h-6 px-2 border border-gray-300 text-right text-sm text-gray-700 truncate">${{ number_format($item['price'], 2) }}</td>
+									<td class="h-6 px-2 border border-gray-300 text-right text-sm text-gray-700 truncate">${{ \App\Support\Decimal::format($item['price'], 2) }}</td>
 									<td class="h-6 px-2 border border-gray-300 text-right text-sm text-gray-700 truncate">{{ $item['quantity'] }}</td>
-									<td class="h-6 px-2 border border-gray-300 text-right text-sm text-gray-700 truncate">${{ number_format($item['subtotal'], 2) }}</td>
+									<td class="h-6 px-2 border border-gray-300 text-right text-sm text-gray-700 truncate">${{ \App\Support\Decimal::format($item['subtotal'], 2) }}</td>
 									<td class="h-6 px-2 border py-1 text-center text-sm text-gray-700 truncate">
 										<button class="h-6 bg-red-600 hover:bg-orange-400 text-white hover:text-black font-black px-2 rounded-3xl" wire:click="removeFromInvoice({{ $item['id'] }})">Eliminar</button>
 									</td>
@@ -179,7 +179,7 @@
 					<div class="flex flex-col p-1 justify-center items-center"> 
 						<span class="text-lg font-semibold" >Total</span>
 						<div class="flex text-xl bg-gray-950 rounded-lg text-white font-black p-1 pe-3 mx-1 h-12 items-center justify-end" style="width: 150px">
-							<span>$ {{ number_format($this->totalFinal, 2) }}</span>
+							<span>$ {{ \App\Support\Decimal::format($this->totalFinal, 2) }}</span>
 						</div>
 					</div>
 
@@ -193,7 +193,7 @@
 							<div class="flex-col p-1 justify-center items-center">
 								<x-input-label class="ms-2">Cambio</x-input-label>
 								<div class="text-xl bg-gray-950 rounded-lg text-white font-black p-1 pe-3 text-right mx-1" style="width: 150px">
-									<span>@if ($this->change != 0) $ {{ number_format($this->change, 2) }} @else --- @endif</span>
+                                                                        <span>@if (\App\Support\Decimal::compare($this->change, '0.00') !== 0) $ {{ \App\Support\Decimal::format($this->change) }} @else --- @endif</span>
 								</div>
 							</div>
 						</div>
@@ -230,7 +230,7 @@
 						<a wire:click="clearInvoice" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md h-10 hover:cursor-pointer">
 							Cancelar
 						</a>
-						@if (count($this->invoiceTable) == 0 || $this->cId == null || $this->paymentAffectsCash && ($this->amount === null || $this->amount < $this->totalFinal))
+                                                @if (count($this->invoiceTable) == 0 || $this->cId == null || ! $this->hasSufficientPayment)
 							<a class="px-4 py-2 bg-neutral-400 text-white font-bold rounded-md h-10 hover:cursor-pointer" disabled>
 								Procesar
 							</a> 

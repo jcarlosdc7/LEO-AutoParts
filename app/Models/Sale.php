@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Decimal;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
@@ -73,6 +74,11 @@ class Sale extends Model
         return $this->belongsTo(CashSession::class);
     }
 
+    public function cashMovements()
+    {
+        return $this->morphMany(CashMovement::class, 'reference');
+    }
+
     public function saleReturns()
     {
         return $this->hasMany(SaleReturn::class);
@@ -95,7 +101,7 @@ class Sale extends Model
 
     public function getNetEconomicValueAttribute(): string
     {
-        return bcsub((string) $this->total, $this->refunded_total, 2);
+        return Decimal::subtract((string) $this->total, $this->refunded_total);
     }
 
     public function getEconomicStatusAttribute(): string

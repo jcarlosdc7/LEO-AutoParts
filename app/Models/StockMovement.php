@@ -17,8 +17,8 @@ class StockMovement extends Model
 
     protected $casts = [
         'occurred_at' => 'datetime',
-        'unit_cost' => 'decimal:2',
-        'total_cost' => 'decimal:2',
+        'unit_cost' => 'decimal:4',
+        'total_cost' => 'decimal:4',
     ];
 
     public function product()

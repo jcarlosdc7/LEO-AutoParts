@@ -74,10 +74,10 @@ test('sale totals use database prices and inventory changes atomically', functio
         ['id' => $f['product']->id, 'quantity' => 2, 'price' => 0.01, 'subtotal' => 0.02],
     ], $f['customer']->id, $f['payment']->id, 60, $f['user']);
 
-    expect((float) $sale->total)->toBe(51.0)
+    expect((string) $sale->total)->toBe('51.00')
         ->and($f['product']->fresh()->stock)->toBe(3)
         ->and($sale->saleDetails)->toHaveCount(1)
-        ->and((float) $sale->saleDetails->first()->price)->toBe(25.5)
+        ->and((string) $sale->saleDetails->first()->price)->toBe('25.5000')
         ->and($sale->salePayments)->toHaveCount(1);
 
     $this->assertDatabaseHas('stock_movements', [

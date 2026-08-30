@@ -9,9 +9,12 @@ use App\Models\CashMovement;
 use App\Models\CashRegister;
 use App\Models\CashSession;
 use App\Models\User;
+use App\Support\Decimal;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class CashService
 {
@@ -110,7 +113,7 @@ class CashService
 
             $before = $this->expectedCash($session);
             $sensitiveWithdrawal = $type === 'withdrawal'
-                && bccomp($amount, (string) config('cash.withdrawal_approval_threshold'), 2) >= 0;
+                && Decimal::compare($amount, (string) config('cash.withdrawal_approval_threshold'), 2) >= 0;
             if ($type === 'withdrawal') {
                 AuditService::record('cash.withdrawal.requested', $session, [], [
                     'cash_session_id' => $session->id,
@@ -122,7 +125,7 @@ class CashService
             if ($sensitiveWithdrawal && ! $actor->hasRole('Administrador')) {
                 throw ValidationException::withMessages(['movementAmount' => 'Este retiro requiere autorización administrativa.']);
             }
-            if (in_array($type, self::OUTFLOW_TYPES, true) && bccomp($before, $amount, 2) < 0) {
+            if (in_array($type, self::OUTFLOW_TYPES, true) && Decimal::compare($before, $amount, 2) < 0) {
                 AuditService::record('cash.insufficient_balance', $session, [], [
                     'cash_session_id' => $session->id, 'requested_amount' => $amount, 'available_amount' => $before,
                 ], $actor->id);
@@ -141,8 +144,8 @@ class CashService
                 'approved_at' => $type === 'withdrawal' ? now() : null,
             ]);
             $after = in_array($type, self::INFLOW_TYPES, true)
-                ? bcadd($before, $amount, 2)
-                : bcsub($before, $amount, 2);
+                ? Decimal::add($before, $amount)
+                : Decimal::subtract($before, $amount);
 
             AuditService::record('cash.movement.created', $movement, [], [
                 'cash_register_id' => $session->cash_register_id,
@@ -189,11 +192,11 @@ class CashService
             $this->ensureOpen($session);
             [$counted, $lines] = $this->calculateCount($session->register->currency_code, $quantities);
             $expected = $this->expectedCash($session);
-            $difference = bcsub($counted, $expected, 2);
+            $difference = Decimal::subtract($counted, $expected);
             $differenceReason = $this->normalizeDifferenceReason($difference, $differenceReason);
             $absoluteDifference = ltrim($difference, '-');
             if (
-                bccomp($absoluteDifference, (string) config('cash.difference_approval_threshold'), 2) >= 0
+                Decimal::compare($absoluteDifference, (string) config('cash.difference_approval_threshold'), 2) >= 0
                 && ! $actor->hasRole('Administrador')
             ) {
                 throw ValidationException::withMessages(['differenceReason' => 'Esta diferencia requiere autorización administrativa para cerrar.']);
@@ -233,7 +236,7 @@ class CashService
                 'difference_reason' => $differenceReason,
             ];
             AuditService::record('cash.closed', $session, $before, $audit, $actor->id);
-            if (bccomp($difference, '0.00', 2) !== 0) {
+            if (Decimal::compare($difference, '0.00', 2) !== 0) {
                 AuditService::record('cash.difference.recorded', $session, [], $audit, $actor->id);
             }
 
@@ -251,15 +254,15 @@ class CashService
             $this->ensureOpen($session);
             [$counted] = $this->calculateCount($session->register->currency_code, $quantities);
             $expected = $this->expectedCash($session);
-            $difference = bcsub($counted, $expected, 2);
+            $difference = Decimal::subtract($counted, $expected);
 
             return [
                 'expected' => $expected,
                 'counted' => $counted,
                 'difference' => $difference,
-                'status' => bccomp($difference, '0.00', 2) === 0
+                'status' => Decimal::compare($difference, '0.00', 2) === 0
                     ? 'CUADRA'
-                    : (bccomp($difference, '0.00', 2) < 0 ? 'FALTANTE' : 'SOBRANTE'),
+                    : (Decimal::compare($difference, '0.00', 2) < 0 ? 'FALTANTE' : 'SOBRANTE'),
             ];
         }, 3);
     }
@@ -291,7 +294,7 @@ class CashService
         $income = (string) $session->movements()->whereIn('type', self::INFLOW_TYPES)->sum('amount');
         $outflow = (string) $session->movements()->whereIn('type', self::OUTFLOW_TYPES)->sum('amount');
 
-        return bcsub(bcadd((string) $session->opening_amount, $income, 2), $outflow, 2);
+        return Decimal::subtract(Decimal::add((string) $session->opening_amount, $income), $outflow);
     }
 
     public function movementBreakdown(CashSession $session): array
@@ -362,8 +365,8 @@ class CashService
         $lines = [];
         foreach ($denominations as $denomination) {
             $quantity = $normalized[$denomination->id] ?? 0;
-            $subtotal = bcmul((string) $denomination->value, (string) $quantity, 2);
-            $total = bcadd($total, $subtotal, 2);
+            $subtotal = Money::fromUnitPrice((string) $denomination->value, $quantity, $currencyCode)->amount();
+            $total = Decimal::add($total, $subtotal);
             $lines[] = [
                 'cash_denomination_id' => $denomination->id,
                 'quantity' => $quantity,
@@ -400,16 +403,16 @@ class CashService
 
     private function normalizePositiveMoney(string $amount, string $field): string
     {
-        $amount = trim($amount);
-        if (! preg_match('/^\d{1,10}(?:\.\d{1,2})?$/', $amount) || bccomp($amount, '0.00', 2) <= 0 || bccomp($amount, '99999999.99', 2) > 0) {
+        try {
+            $amount = Decimal::parse($amount, Decimal::STORAGE_SCALE, false, $field);
+        } catch (InvalidArgumentException) {
+            throw ValidationException::withMessages([$field => 'El monto debe ser positivo y tener como máximo dos decimales.']);
+        }
+        if (Decimal::compare($amount, '0.00', 2) <= 0 || Decimal::compare($amount, '99999999.99', 2) > 0) {
             throw ValidationException::withMessages([$field => 'El monto debe ser positivo y tener como máximo dos decimales.']);
         }
 
-        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
-        $whole = ltrim($whole, '0');
-        $whole = $whole === '' ? '0' : $whole;
-
-        return $whole.'.'.str_pad($fraction, 2, '0');
+        return $amount;
     }
 
     private function normalizeReason(string $reason, string $field, int $minimum): string
@@ -424,7 +427,7 @@ class CashService
 
     private function normalizeDifferenceReason(string $difference, ?string $reason): ?string
     {
-        if (bccomp($difference, '0.00', 2) === 0) {
+        if (Decimal::compare($difference, '0.00', 2) === 0) {
             return $this->normalizeOptionalText($reason, 1000, 'differenceReason');
         }
 

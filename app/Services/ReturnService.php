@@ -13,6 +13,8 @@ use App\Models\SaleDetail;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
 use App\Models\User;
+use App\Support\Decimal;
+use App\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -97,7 +99,7 @@ class ReturnService
                 ->selectRaw('sale_return_items.sale_detail_id, SUM(sale_return_items.quantity) as quantity')
                 ->pluck('quantity', 'sale_detail_id');
 
-            $total = '0.00';
+            $total = Money::zero();
             foreach ($normalized as $item) {
                 $detail = $details[$item['sale_detail_id']];
                 $available = $detail->quantity - (int) ($alreadyReturned[$detail->id] ?? 0);
@@ -107,7 +109,7 @@ class ReturnService
                 if ($item['restock'] && $item['condition'] !== 'sellable') {
                     throw ValidationException::withMessages(['returnItems' => 'Solo productos vendibles pueden regresar al stock disponible.']);
                 }
-                $total = bcadd($total, bcmul((string) $detail->price, (string) $item['quantity'], 2), 2);
+                $total = $total->add(Money::fromUnitPrice((string) $detail->price, (int) $item['quantity']));
             }
 
             $products = Product::query()->whereIn('id', $details->pluck('product_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
@@ -125,7 +127,7 @@ class ReturnService
                 if (! $cashSession) {
                     throw ValidationException::withMessages(['refundMethod' => 'Se requiere una caja activa para reembolsar efectivo.']);
                 }
-                if (bccomp($this->cash->expectedCash($cashSession), $total, 2) < 0) {
+                if (Decimal::compare($this->cash->expectedCash($cashSession), $total->amount(), Decimal::STORAGE_SCALE) < 0) {
                     throw ValidationException::withMessages(['refundMethod' => 'La caja no dispone de efectivo suficiente para el reembolso.']);
                 }
             }
@@ -143,7 +145,7 @@ class ReturnService
 
             foreach ($normalized as $item) {
                 $detail = $details[$item['sale_detail_id']];
-                $lineTotal = bcmul((string) $detail->price, (string) $item['quantity'], 2);
+                $lineTotal = Money::fromUnitPrice((string) $detail->price, (int) $item['quantity'])->amount();
                 SaleReturnItem::create([
                     'sale_return_id' => $saleReturn->id, 'sale_detail_id' => $detail->id, 'product_id' => $detail->product_id,
                     'quantity' => $item['quantity'], 'unit_price' => $detail->price, 'refund_amount' => $lineTotal,
@@ -167,12 +169,12 @@ class ReturnService
                 ?? $lockedSale->salePayments()->first();
             $refund = Refund::create([
                 'sale_return_id' => $saleReturn->id, 'sale_id' => $lockedSale->id, 'payment_method_id' => $paymentMethod->id,
-                'sale_payment_id' => $originalPayment?->id, 'cash_session_id' => $cashSession?->id, 'amount' => $total,
+                'sale_payment_id' => $originalPayment?->id, 'cash_session_id' => $cashSession?->id, 'amount' => $total->amount(),
                 'reference' => $reference, 'status' => 'completed', 'processed_by' => $actor->id, 'processed_at' => now(),
             ]);
             if ($cashSession) {
                 CashMovement::forceCreate([
-                    'cash_session_id' => $cashSession->id, 'user_id' => $actor->id, 'type' => 'refund', 'amount' => $total,
+                    'cash_session_id' => $cashSession->id, 'user_id' => $actor->id, 'type' => 'refund', 'amount' => $total->amount(),
                     'reason' => "Devolución {$saleReturn->return_number}", 'notes' => $reason,
                     'reference_type' => Refund::class, 'reference_id' => $refund->id,
                 ]);
@@ -181,7 +183,7 @@ class ReturnService
             $creditNote = CreditNote::create([
                 'number' => $this->nextNumber('credit_note_sequences', 'NC'), 'sale_id' => $lockedSale->id,
                 'sale_return_id' => $saleReturn->id, 'issued_at' => now(), 'currency' => 'NIO',
-                'subtotal' => $total, 'tax' => '0.00', 'total' => $total, 'reason' => $reason,
+                'subtotal' => $total->amount(), 'tax' => '0.00', 'total' => $total->amount(), 'reason' => $reason,
                 'status' => 'issued', 'created_by' => $actor->id,
             ]);
             foreach ($saleReturn->items as $returnItem) {
@@ -204,7 +206,7 @@ class ReturnService
                     'condition' => $item->condition,
                     'restock' => $item->restock,
                 ])->all(),
-                'amount' => $total,
+                'amount' => $total->amount(),
                 'refund_id' => $refund->id,
                 'payment_method_id' => $paymentMethod->id,
                 'payment_method_code' => $paymentMethod->code,
